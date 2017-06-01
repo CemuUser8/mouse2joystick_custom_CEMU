@@ -1,15 +1,14 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
-;	Author: Helgef
-;	Date: 2016-08-17
-;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
+;	Last Modified Date: 2017-05-31
+; 
+;	Original Author: Helgef
+;	Date: 2016-08-17
 ;
 ;	Description:
 ;	Mouse to keyboard or virtual joystick. For virtual joystick you need to install vJoy. See url below.
 ;	
 ;	Notes: 	
-;			-#s (Winkey+s) toggles on/off.
-;			-#d move visual aid, if autoplaceVisualAid=0.
 ;			-#q exit at any time.
 ;
 ;	Urls:
@@ -26,7 +25,7 @@
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input  														; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
-#include CvJI/CvJoyInterface.ahk										; Credit to evilC.
+#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
 #InstallMouseHook
@@ -39,16 +38,17 @@ SetBatchLines,-1
 OnExit("exitFunc")
 toggle:=1													; On/off parameter for the hotkey.	Toggle 0 means controller is on. The placement of this variable is disturbing.
 ; Icon
+Menu,Tray,Tip, mouse2joystick Custom for CEMU
 Menu,Tray,NoStandard
 try
 	Menu,Tray,Icon,ddores.dll,26
 ;Menu,Settings,openSettings
+Menu,Tray,Add,Settings,openSettings
+Menu,Tray,Add,
+Menu,Tray,Add,Reset to CEMU, selectGameMenu
+Menu,Tray,Add
 Menu,Tray,Add,About,aboutMenu
 Menu,Tray,Add,Help,helpMenu
-Menu,Tray,Add
-Menu,Tray,Add,Select game, selectGameMenu
-;Menu,Tray,Add,Toggle knob size, knobMenu
-Menu,Tray,Add,Settings,openSettings
 Menu,Tray,Add
 Menu,Tray,Add,Reload,reloadMenu
 Menu,Tray,Add,Exit,exitFunc
@@ -62,7 +62,7 @@ IfNotExist, settings.ini
 gameExe=Cemu.exe
 mouse2joystick=1
 autoActivateGame=1
-firstRun=0
+firstRun=1
 vJoyDevice=1
 [General>Setup]
 r=40
@@ -72,7 +72,6 @@ nnp=.65
 [General>Hotkeys]
 controllerSwitchKey=F1
 exitKey=#q
-moveAidKey=
 [Mouse2Joystick>Axes]
 angularDeadZone=0
 invertedX=0
@@ -81,18 +80,17 @@ invertedY=1
 joystickButtonKeyList=e,LShift,Space,Lbutton,1,3,LCtrl,RButton,Enter,m,q,c,i,k,j,l,b
 autoHoldStickKey=
 fixRadiusKey=
-[Mouse2Keyboard>Keys]
+[KeyboardMovement>Keys]
 upKey=w
 downKey=s
 leftKey=a
 rightKey=d
-LButtonReplacementKey=Numpad0
-RButtonReplacementKey=Numpad1
-[Visual aid]
-kr=21
+walkToggleKey=Numpad0
+lockZLToggleKey=Numpad1
+[Extra Settings]
 hideCursor=1
-visualAidIsOn=0
-autoPlaceVisualAid=1
+BotWmouseWheel=0
+lockZL=0
 nnVA=1
 )
 	FileAppend,%defaultSettings%,settings.ini
@@ -110,7 +108,6 @@ nnVA=1
 }
 
 ; Read settings.
-
 IniRead,allSections,settings.ini
 if (!allSections || allSections="ERROR") ; Do not think this is ever set to ERROR.
 {
@@ -133,64 +130,30 @@ Loop,Parse,allSections,`n
 }
 readSettingsSkippedDueToError:	; This comes from setSettingsToDefault if there was an error.
 
-visualAidIsOn:=0
-
 pi:=atan(1)*4													; Approx pi.
 angularDeadZone*=pi/180											; Convert to radians
 angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
 
 ; Constants and such. Some values are commented out because they have been stored in the settings.ini file instead, but are kept because they have comments.
-
-
+version := "v0.1.0.0"
 moveStickHalf := False
 KeyList := []
-;kr:=21											; Radius of the knob for the visual aid. Needs to match the actuall image, don't change if you don't change the image. (You can test smaller perhaps.) Verified, 10 works fine.
-vW:=202											; Visual aid image width. Needs to match the actuall image, don't change if you don't change the image. Caveat: This implementation assumes vW=vH.
-vH:=202											; Visual aid image height. Both the inner circle and the outer ring is assumed to have the same dimensions.
-
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
-;r:=75											; This is acts as a sensitivity parameter, where values closer to zero corresponds higher sensitivity, should not be less than one.
-;k:=0.50										; This parameter dictates the radius of the inner circle, inner=outer*k, k∈(0,1)
-
-; Key set up
-;controllerSwitchKey:="#s"						; Hotkey for toggling controller on/off
-; Mouse button binds:							; Game does not receive mouse clicks when controller is on, bind to keyboard instead.
-;LButtonReplacementKey:=""
-;RButtonReplacementKey:=""
 
 ; Hotkey(s).
 Hotkey,%controllerSwitchKey%,controllerSwitch, on
 Hotkey,%exitKey%,exitFunc, on
-IF (moveAidKey)
-	Hotkey,%moveAidKey%,moveAid, on
-
-;hideCursor:=1									; Set to 1 to hide the cursor when controller is on.
-;visualAidIsOn:=1								; Set to 1 to show a visual aid for the controller.
-;autoplaceVisualAid:=1							; Automatically places visual aid outside game screen.
 
 freq:=25										; Controllers update frequency, in ms.
-movingAid:=0									; Track when visual aid is in move mode.
 actionTaken:=0									; For handling quick fall back to center. Needs to start at zero.
-; New options
-;joystickButtonKeyList:=""						; Comma delimited list of keynames for binding keys to joystick buttons.
-;autoHoldStickKey:="o"							; Hotkey for toggling auto hold stick on/off.
-;mouse2joystick:=1								; These two should not be 1 at the same time.
-
-;mouse2joystick:=0								; Debugging this line should be removed
-
-mouse2keyboard:= False
-
+mouse2joystick := True
 if mouse2joystick
 {
 	Gosub, initCvJoyInterface
 	Gosub, mouse2joystickHotkeys
 }
 
-;autoActivateGame:=0
-;angularDeadZone:=pi/16							; Defines the area where only one axis is used. (half the area really) should not be pi/4 or greater.
-;invertedX:=0									; Invert x-axis? 1:yes, 0:no
-;invertedY:=1									; Invert y-axis? 1:yes, 0:no
 pmX:=invertedX ? -1:1							; Sign for inverting axis
 pmY:=invertedY ? -1:1
 snapToFullTilt:=0.005							; This needs to be improved.
@@ -200,37 +163,9 @@ fr:=0											; Fixed radius.
 stickIsAutoHeld:=0								; Tracks the status of autohold stick. 0 means it is not being auto held.
 ;fallBackPause:=125								; Short mouse movement block after fall back. Set to zero to disable fallback
 
-;gameExe:="notepad.exe"							 		; Game executable name, for activating the game and for sizing the gui overlay, when toggling on/off the controller.
-
-keyNames:=[upKey, leftKey, downKey, rightKey]	; The order is important, corresponds to up/left/down/right on the "stick".
-currentState:=[0,0,0,0]							; 0 means that the corresponding key in keyNames is up, 1 means down
 segmentEndAngles:=Object()						; Each segment is defined by its angle, segment 1,...,12 -> end angle pi/6,pi/3,...,2*pi [rad]. (Unfortuantley its clockwise, with 0/2pi being at three o'clock)
 Loop,12
 	segmentEndAngles[A_Index]:=pi/6*A_Index
-
-
-; Display on screen visual aid for joystick control
-if visualAidIsOn
-{
-	; Visual aid gui, the center circle
-	; Calculate the position and dimension of the inner circle.
-	icX:=vW*(1-k)/2
-	icY:=vH*(1-k)/2
-	icW:=vW*k
-	Gui, VA: new
-	Gui, VA: +ToolWindow -Caption +AlwaysOnTop +HWNDva
-	Gui, VA: add, Picture, BackgroundTrans X0 Y0, images\outerRing.png
-	Gui, VA: add, Picture, BackgroundTrans X%icX% Y%icY% W%icW% H-1 hwndIC, images\innerCircle.png
-	Gui, VA: Color, FFFFFF
-	
-	; Visual aid gui, the knob.
-	kd:=kr*2														; Knob diameter.
-	Gui, VAknob: new
-	Gui, VAknob: +ToolWindow -Caption +AlwaysOnTop +HWNDknob
-	Gui, VAknob: add, Picture,X0 Y0 W%kd% H-1, images\knob.png 
-	Gui, VAknob: Color, FFFFFF
-	
-}
 
 ; Mouse blocker
 ; Transparent window that covers game screen to prevent game from capture the mouse.
@@ -245,78 +180,29 @@ if (firstRun)
 	IniWrite,0,settings.ini,General,firstRun
 }
 
-return
+Return
 ; End autoexec.
 
-
-moveAid:
-	if (autoplaceVisualAid || !toggle)
-		return
-	movingAid:=!movingAid
-	if movingAid
-	{
-		Gui, VA: show
-		WinSet, Style, +0xC00000, ahk_id %va%
-	}
-	else
-	{
-		WinSet, Style, -0xC00000, ahk_id %va%
-		Gui, VA: show, hide
-	}
-return
-
-vaGuiClose:		
-	WinSet, Style, -0xC00000, ahk_id %va%		; In case user closes va-gui when caption is on.
-	Gui, VA: show, hide
-	movingAid:=0
-return
-
 selectGameMenu:
-	ToolTip, Point and click on the game you want to select`, right click to cancel.
-	HotKey,RButton,selectGameMenuCancel,on
-	KeyWait,LButton,D
-	MouseGetPos,,,wum
-	WinGet, new_gameExe,ProcessName,ahk_id %wum%
-	if new_gameExe
-	{
-		Tooltip, You have selected %new_gameExe%.
-		gameExe:=new_gameExe
-		IniWrite,%gameExe%,settings.ini,General,gameExe
-	}
-	selectGameMenuCancel:
-	HotKey,RButton,selectGameMenuCancel,Off
-	SetTimer, tipOff,-3000
+	TrayTip, Game reset to cemu.exe, If you want something different manually edit the 'settinigs.ini' file
+	gameExe := "cemu.exe"
+	IniWrite, %gameExe%, settings.ini, General, gameExe
 return
 
 reloadMenu:
-	reload
+	Reload
 return
 
 aboutMenu:
-	Msgbox,32,About, Author: Helgef`nVersion 2.0 2016-08-17`n`nModified for CEMU by:`nCemuUser8
+	Msgbox,32,About, Modified for CEMU by:`nCemuUser8`n`nVersion:`n%version%
 return
 
 helpMenu:
-	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help? Opens link in default browser.
+	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nWill Open link in default browser.
 	IfMsgBox Yes
 		Run, https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/
 return
 
-knobMenu:
-	if !toggle
-		return
-	kr:= kr=21 ? 10 : 21
-	ToolTip, % "Knob size changed to: " . (kr=21 ? "big.":"small.")
-	SetTimer,tipOff,-3000
-	IniWrite,%kr%,settings.ini,Visual Aid,kr
-	; Visual aid gui, the knob.
-	kd:=kr*2														; Knob diameter.
-	Gui, VAknob: destroy
-	Gui, VAknob: new
-	Gui, VAknob: +ToolWindow -Caption +AlwaysOnTop +HWNDknob
-	Gui, VAknob: add, Picture,X0 Y0 W%kd% H-1, images\knob.png 
-	Gui, VAknob: Color, FFFFFF
-return
 
 initCvJoyInterface:
 	; Copied from joytest.ahk, from CvJoyInterface by evilC
@@ -339,16 +225,14 @@ initCvJoyInterface:
 		IF (vJoyInterface.Devices[A_Index].IsAvailable())
 			ValidDevices .= A_Index . "|"
 	}
+	global vstick := vJoyInterface.Devices[vJoyDevice]
 return
 
 ; Hotkey labels
 ; This switches on/off the controller.
 controllerSwitch:
-	if movingAid																				; Handle when controller is switched while visual aid is in move mode.
-		return
 	if toggle	; Starting controller
 	{
-		global vstick := vJoyInterface.Devices[vJoyDevice]
 		if autoActivateGame
 		{
 			WinActivate,ahk_exe %gameExe%
@@ -369,37 +253,7 @@ controllerSwitch:
 		}
 		DllCall("User32.dll\ReleaseCapture")													; Release mouse capture from game.
 		
-		if visualAidIsOn																		; Show and place visual aid.
-		{
-			if autoplaceVisualAid
-			{
-				vY:=gameY+gameH/2-vH/2
-				rightBoundExceeded:=gameX+gameW+vW+kr>A_ScreenWidth
-				leftBoundExceeded:=gameX-vW-kr<0
-				if rightBoundExceeded && leftBoundExceeded
-					vX:=kr,vY:=kr
-				else if rightBoundExceeded
-					vX:=gameX-vW-kr
-				else
-					vX:=gameX+gameW+kr
-				
-				Gui, VA: Show, X%vX% Y%vY%  w%vW% h%vH%  NA,Visual aid for controller.			; Show visual aid outside bottom right corner of game screen
-			}
-			else
-			{
-					Gui, VA: Show, w%vW% h%vH% NA,Visual aid for controller.					; Show visual aid at last position
-			}
-			WinSet,TransColor, FFFFFF, ahk_id %va%
-			if !autoplaceVisualAid
-				WinGetPos,vX,vY,,,ahk_id %va%													; Get position and calculate it's center.
-			vOX:=round(vX+vW/2)
-			vOY:=round(vY+vH/2)
-			
-			Gui, VAknob: Show,% "NA X" vOX-kr " Y" vOY-kr " W41 H41",Controller knob			; Show visual aid, kr is the knob radius
-			WinSet,TransColor, FFFFFF, ahk_id %knob%
-		}
-
-		; Controller origin is center of game screen or screen if autoActivateGame:=0. (This is not the visual aid)
+		; Controller origin is center of game screen or screen if autoActivateGame:=0.
 		OX:=gameX+gameW/2				
 		OY:=gameY+gameH/2
 		
@@ -410,10 +264,10 @@ controllerSwitch:
 
 		; Move mouse to controller origin
 		MouseMove,OX,OY	
-
 		
 		; The mouse blocker
 		Gui, Controller: Show,NA x%gameX% y%gameY% w%gameW% h%gameH%,Controller
+		Gui, Controller:+LastFound
 		WinSet,Transparent,1,ahk_id %stick%														; Make transparent.
 		DllCall("User32.dll\SetCapture", "Uint", stick)											; Let the controller capture the mouse.
 		
@@ -422,8 +276,6 @@ controllerSwitch:
 			
 		if mouse2joystick
 			SetTimer,mouseTojoystick,%freq%
-		else if mouse2keyboard
-			SetTimer,mouseTokeyboard,%freq%
 	}
 	else	; Shutting down controller
 	{
@@ -432,20 +284,11 @@ controllerSwitch:
 			SetTimer,mouseTojoystick,Off
 			setStick(0,0)															; Stick in equllibrium.
 			setStick(0,0, True)
-		}
-		else if mouse2keyboard
-		{		
-			SetTimer,mouseTokeyboard,Off
-			changeStateTo([0,0,0,0])	
 		}			
 		
 		if hideCursor
 			DllCall("User32.dll\ShowCursor", "Int", 1) 							; No need to show cursor if not hidden.
-		if visualAidIsOn
-		{
-			WinHide, ahk_id %knob%
-			WinHide, ahk_id %va%
-		}
+
 		DllCall("User32.dll\ReleaseCapture")									; This might be unnecessary
 		stickIsAutoHeld:=0 														; Ensure stick is not being held
 		WinHide, ahk_id %stick%
@@ -472,9 +315,7 @@ autoHoldStick:
 		MouseGetPos,ahX,ahY													; Save mouse position
 		MouseMove,OX,OY														; Move mouse
 		if mouse2joystick
-			SetTimer, mouseTojoystick, Off									; Shut down timer
-		else if mouse2keyboard
-			SetTimer, mouseTokeyboard, Off										
+			SetTimer, mouseTojoystick, Off									; Shut down timer									
 	}
 	else
 	{
@@ -490,8 +331,6 @@ autoHoldStick:
 		MouseMove,ahX,ahY													; Move back mouse.
 		if mouse2joystick
 			SetTimer, mouseTojoystick, on									; Turn timer back on.
-		else if mouse2keyboard
-			SetTimer, mouseTokeyboard, on
 	}
 	stickIsAutoHeld:=!stickIsAutoHeld										; Toggle auto hold status
 return
@@ -502,11 +341,13 @@ return
 mouse2joystickHotkeys:
 	Hotkey, if, (!toggle && mouse2joystick)
 		SetStick(0,0, True)
-		HotKey,%LButtonReplacementKey%,toggleHalf, On
-		IF (RButtonReplacementKey)
-			HotKey,%RButtonReplacementKey%,toggleAimLock, On
-		Hotkey,WheelUp, overwriteWheelUp, on
-		Hotkey,WheelDown, overwriteWheelDown, on
+		HotKey,%walkToggleKey%,toggleHalf, On
+		IF (lockZLToggleKey AND lockZL)
+			HotKey,%lockZLToggleKey%,toggleAimLock, On
+		IF (BotWmouseWheel) {
+			Hotkey,WheelUp, overwriteWheelUp, on
+			Hotkey,WheelDown, overwriteWheelDown, on
+		}
 		Hotkey,%upKey%, overwriteUp, on 
 		Hotkey,%upKey% Up, overwriteUpup, on
 		Hotkey,%leftKey%, overwriteLeft, on 
@@ -543,11 +384,13 @@ fixRadius:
 	Y-=OY
 	fr:=sqrt(X**2+Y**2) 						; Fix radius to current deflection.
 return
+
+
 ; Labels for pressing and releasing joystick buttons.
 pressJoyButton:
 	keyName:=A_ThisHotkey
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	if (joyButtonNumber = 7) {
+	if (joyButtonNumber = 7 AND lockZL) {
 		IF (ZLToggle)
 			vstick.SetBtn(0,joyButtonNumber)
 		Else
@@ -560,7 +403,7 @@ return
 releaseJoyButton:
 	keyName:=RegExReplace(A_ThisHotkey," Up$")
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	if (joyButtonNumber = 7) {
+	if (joyButtonNumber = 7 AND lockZL) {
 		IF (ZLToggle)
 			vstick.SetBtn(1,joyButtonNumber)
 		Else
@@ -693,54 +536,22 @@ ReleaseDPad:
 	SetTimer, ReleaseDPad, Off
 Return
 
-; Hotkeys mouse2keyboard
-; Game does not receive mouse clicks when controller is on, bind to keyboard instead.
-#if (!toggle && mouse2keyboard)
-LButton::
-	if LButtonReplacementKey
-		Send,{%LButtonReplacementKey% down}
-return
-
-LButton Up::
-if LButtonReplacementKey
-		Send,{%LButtonReplacementKey% up}
-return
-RButton::
-	if RButtonReplacementKey
-		Send,{%RButtonReplacementKey% down}
-return
-
-RButton Up::
-	if RButtonReplacementKey
-		Send,{%RButtonReplacementKey% up}
-return
-
-#if
-
-
 ; Labels
 
 mouseTojoystick:
-	mouse2joystick(r,dr,OX,OY,vOX,vOY,kr)
-return
-
-mouseTokeyboard:	
-	mouse2keyboard(r,dr,OX,OY,vOX,vOY,kr)
+	mouse2joystick(r,dr,OX,OY)
 return
 
 ; Functions
 
-mouse2joystick(r,dr,OX,OY,vOX,vOY,kr)
+mouse2joystick(r,dr,OX,OY)
 {
 	; r is the radius of the outer circle.
 	; dr is a bounce back parameter.
 	; OX is the x coord of circle center.
 	; OY is the y coord of circle center.
-	; vOX is the x coord of the visual aid origin.
-	; vOY is the y coord of the visual aid origin.
-	; kr is the knob radius.
 	; fr is the fixed radius
-	global actionTaken, fallBackPause, visualAidIsOn, knob, vW, vH, k, nnp, nnVA, fr, AlreadyDown
+	global actionTaken, fallBackPause, k, nnp, fr, AlreadyDown
 	MouseGetPos,X,Y
 	X-=OX										; Move to controller coord system.
 	Y-=OY
@@ -763,26 +574,6 @@ mouse2joystick(r,dr,OX,OY,vOX,vOY,kr)
 	; Calculate angle
 	phi:=getAngle(X,Y)							
 	
-	if visualAidIsOn
-	{
-		; Map controller coords to visual aid coord system
-		vr:=vW/2
-		if (RR>k*r && nnp!=1 && nnVA)
-		{
-			A:=(vr-vr*k)*((RR-k*r)/(r-k*r))**nnp+vr*k	; Amplitude corrected to reflect non linearity parameter nnp.
-			kX:=round(A*cos(phi))+vOX-kr
-			kY:=round(A*sin(phi))+vOY-kr
-		}
-		else											; Inside the deadzone, the knob moves linearly.
-		{
-			kX:=round(vOX+(X/r)*vr-kr) 
-			kY:=round(vOY+(Y/r)*vr-kr) 
-		}
-
-		SetWinDelay,-1
-		WinMove,ahk_id %knob%,, kX,kY			; Move the knob.
-	}
-	
 	
 	if (RR>k*r AND !AlreadyDown) 								; Check if outside inner circle/deadzone.
 	{
@@ -797,12 +588,7 @@ mouse2joystick(r,dr,OX,OY,vOX,vOY,kr)
 		if (fallBackPause!=-1 && actionTaken=1)					
 		{
 			MouseMove,OX,OY						; User has moved back to inner circle/deadzone, fall back to center.
-			if visualAidIsOn
-			{
-				kX:=vOX-kr
-				kY:=vOY-kr
-				WinMove,ahk_id %knob%,, kX,kY	; Move the knob.
-			}
+
 			mouseBlock()						; Short mouse movmement block after fallback.
 			actionTaken:=0						; This will enable leaving the inner circle/deadzone again.
 		}
@@ -812,7 +598,7 @@ mouse2joystick(r,dr,OX,OY,vOX,vOY,kr)
 
 action(phi,tilt)
 {	
-	; This is for mouse2joystick. mouse2keyboard calls actionm2k().
+	; This is for mouse2joystick.
 	; phi ∈ [0,2*pi] defines in which direction the stick is tilted.
 	; tilt ∈ (0,1] defines the amount of tilt. 0 is no tilt, 1 is full tilt.
 	; When this is called it is already established that the deadzone is left, or the inner radius.
@@ -976,126 +762,7 @@ setStick(x,y, a := False)
 }
 
 
-getQuadrant(phi)
-{
-	; Not used.
-	global pi
-	if (phi>0 && phi <= pi/2)
-		return 1
-	else if(phi>pi/2 && phi <= pi)
-		return 2
-	else if( phi>pi && phi <= 3*pi/2)
-		return 3
-	else if (phi>3*pi/2 && phi <= 2*pi)
-		return 4
-	return -1	; shouldn't happen
-}
-
-
-; Mouse to Keyboard
-
-mouse2keyboard(r,dr,OX,OY,vOX,vOY,kr)
-{
-	; r is the radius of the outer circle.
-	; dr is a bounce back parameter.
-	; OX is the x coord of circle center.
-	; OY is the y coord of circle center.
-	; vOX is the x coord of the visual aid origin.
-	; vOY is the y coord of the visual aid origin.
-	; kr is the knob radius.
-	global actionTaken, fallBackPause, visualAidIsOn, knob, vW, vH,k
-	MouseGetPos,X,Y
-	X-=OX										; Move to controller coord system.
-	Y-=OY
-	RR:=sqrt(X**2+Y**2)
-	if (RR>r)									; Check if outside controller circle.
-	{
-		X:=round(X*(r-dr)/RR)
-		Y:=round(Y*(r-dr)/RR)
-		MouseMove,X+OX,Y+OY 					; Calculate point on controller circle, move back to screen/window coords, and move mouse.
-	}
-	if visualAidIsOn
-	{
-		; Map controller coords to visual aid coord system
-		kX:=round(vOX+X/r*vW/2-kr)
-		kY:=round(vOY+Y/r*vH/2-kr)
-		SetWinDelay,-1
-		WinMove,ahk_id %knob%,, kX,kY			; Move the knob.
-	}
-	if (RR>k*r) 								; Check if outside inner circle.
-	{
-		; Calculate segement
-		phi:=getAngle(X,Y)
-		seg:=getSegment(phi)
-		; Call action function.
-		actionm2k(seg)
-		actionTaken:=1							; This will enable fall back to center when leaving outer circle.
-	}
-	else
-	{
-		changeStateTo([0,0,0,0])				; All keys up.
-		if (fallBackPause!=-1 && actionTaken=1)					
-		{
-			MouseMove,OX,OY						; User has moved back to inner circle, fall back to center.
-			if visualAidIsOn
-			{
-				kX:=vOX-kr
-				kY:=vOY-kr
-				WinMove,ahk_id %knob%,, kX,kY	; Move the knob.
-				
-			}
-			mouseBlock()						; Short mouse movmement block after fallback.
-			
-			actionTaken:=0						; This will enable leaving the inner circle again.
-		}
-	}
-}
-
-actionm2k(seg)
-{	
-	; This is for mouse2keyboard. mouse2joystick calls action().
-	; 1 is down, 0 is up newState:=[w a s d] 
-	if (seg=1 || seg=12)			;	Keys down:
-		changeStateTo([0,0,0,1])	;	d				
-	else if (seg=2)
-		changeStateTo([0,0,1,1])	;	s+d
-	else if (seg=3 || seg= 4)
-		changeStateTo([0,0,1,0])	;	s
-	else if (seg=5)
-		changeStateTo([0,1,1,0])	;	a+s
-	else if (seg=6 || seg=7)
-		changeStateTo([0,1,0,0])	;	a
-	else if (seg=8)
-		changeStateTo([1,1,0,0])	;	w+a
-	else if (seg=9 || seg=10)
-		changeStateTo([1,0,0,0])	;	w
-	else if (seg=11)
-		changeStateTo([1,0,0,1])	;	d+w
-	else
-		return -1 ; error
-	return
-}
-
-changeStateTo(newState)
-{	
-	global keyNames, currentState
-	Loop, 4
-		if (newState[A_Index]!=currentState[A_Index] && keyNames[A_Index])				; added support for empty keys, ie, no press at all in some direction (&& keyNames[A_Index])
-			Send,% "{" . keyNames[A_Index] . (newState[A_Index] ? " Down}" : " Up}")
-	currentState:=newState
-	return
-}
-
-getSegment(phi)
-{
-	global segmentEndAngles
-	Loop 12
-		if(phi<segmentEndAngles[A_Index])
-			return A_Index
-	return -1 ; error
-}
-
-; Shared functions, mouse2joystick mouse2keyboard
+; Shared functions
 getAngle(x,y)
 {
 	global pi
@@ -1110,6 +777,7 @@ getAngle(x,y)
 		return phi+2*pi
 	return phi
 }
+
 mouseBlock()
 {
 	global fallBackPause	
@@ -1127,10 +795,7 @@ exitFunc()
 		SetStick(0,0, True)
 		vstick.Relinquish()
 	}
-	else if mouse2keyboard
-	{
-		changeStateTo([0,0,0,0])
-	}
+	
 	BlockInput, MouseMoveOff
 	DllCall("User32.dll\ShowCursor", "Int", 1)
 	ExitApp
@@ -1152,10 +817,8 @@ if !toggle			; This is probably best.
 	return
 Gui, Main: Destroy ; Ops
 hideShow=0 
-win_name:="Mouse2Joystick/Keyboard Settings" 
+win_name := "Mouse2Joystick Custom for CEMU Settings  -  " . version
 submitOnlyOne:=0 
-OX_client:=170
-OY_client:=25
 GoSub,readTreeString
 Gui, Main: -Resize
 GUI, Main: add, text, x10  , Options:
@@ -1165,7 +828,7 @@ GUI, Main: Add, StatusBar
 SB_SetParts(150,50)
 GoSub,guiCode
 GUI, Main:+HwndMAIN_HWND
-Gui, Main: Show,, Mouse2Joystick/Keyboard Settings
+Gui, Main: Show,, %win_name%
 Main_WinTitle=ahk_id %MAIN_HWND%
 GuiControl, -Redraw, Main 
 Gui, Main: default
@@ -1199,16 +862,16 @@ mainOk:
 	; Disable old hotkeys
 	Hotkey,%controllerSwitchKey%,controllerSwitch, off
 	Hotkey,%exitKey%,exitFunc, off
-	IF (moveAidKey)
-		Hotkey,%moveAidKey%,moveAid, off
 		
 	; Joystick buttons
 	Hotkey, if, (!toggle && mouse2joystick)
-	HotKey,%LButtonReplacementKey%,toggleHalf, Off
-	IF (RButtonReplacementKey)
-		HotKey,%RButtonReplacementKey%,toggleAimLock, Off
-	Hotkey,WheelUp, overwriteWheelUp, off
-	Hotkey,WheelDown, overwriteWheelDown, off
+	HotKey,%walkToggleKey%,toggleHalf, Off
+	IF (lockZLToggleKey AND lockZL)
+		HotKey,%lockZLToggleKey%,toggleAimLock, Off
+	IF (BotWmouseWheel) {
+		Hotkey,WheelUp, overwriteWheelUp, off
+		Hotkey,WheelDown, overwriteWheelDown, off
+	}
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
@@ -1247,9 +910,6 @@ mainOk:
 		}
 	}
 
-	visualAidIsOn:=0
-
-	mouse2keyboard:= False
 	if mouse2joystick
 	{
 		Gosub, initCvJoyInterface
@@ -1259,24 +919,10 @@ mainOk:
 	pmY:=invertedY ? -1:1
 	angularDeadZone*=pi/180											; Convert to radians
 	angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
-	if visualAidIsOn
-	{
-		; Remake va.
-		Gui, VA: destroy
-		icX:=vW*(1-k)/2
-		icY:=vH*(1-k)/2
-		icW:=vW*k
-		Gui, VA: new
-		Gui, VA: +ToolWindow -Caption +AlwaysOnTop +HWNDva
-		Gui, VA: add, Picture, BackgroundTrans X0 Y0, images\outerRing.png
-		Gui, VA: add, Picture, BackgroundTrans X%icX% Y%icY% W%icW% H-1 hwndIC, images\innerCircle.png
-		Gui, VA: Color, FFFFFF
-	}
+
 	; Enable new hotkeys
 	Hotkey,%controllerSwitchKey%,controllerSwitch, on
 	Hotkey,%exitKey%,exitFunc, on
-	IF (moveAidKey)
-		Hotkey,%moveAidKey%,moveAid, on
 	
 return
 guiCode:
@@ -1341,7 +987,7 @@ Gui, Main: add, Text,Hidden vtext1950133817 X270 Y109,%Text%
 Text= 
 Text=	
 (
-Range, (0,1). The center area (pink in the visual aid) where no output is sent.
+Range, (0,1). The center area where no output is sent.
 )
 Gui, Main: add, Text,Hidden vtext1365655690 X270 Y169,%Text%
 Text= 
@@ -1359,7 +1005,7 @@ Gui, Main: add, Text,Hidden vtext68851252 X270 Y48,%Text%
 Text= 
 Gui, Main: add, GroupBox,Hidden vtext495210823 X170 Y25 W520 H72,Quit application
 Gui, Main: add, GroupBox,Hidden vtext199783574 X170 Y105 W520 H72,Toggle the controller on/off
-Gui, Main: add, GroupBox,Hidden vtext1265532956 X170 Y185 W520 H72,Enable/disable movement of visual aid
+;Gui, Main: add, GroupBox,Hidden vtext1265532956 X170 Y185 W520 H72,Enable/disable movement of visual aid
 Iniread,master_var,settings.ini,General>Hotkeys,controllerSwitchKey									
 hotkey26759803_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden 0 vhotkey26759803 X185 Y125 W150,% RegExReplace(master_var,"#")
@@ -1370,11 +1016,6 @@ hotkey255211840_oldkey:=master_var
 Gui, Main: add, Hotkey, Hidden 0 vhotkey255211840 X185 Y45 W150,% RegExReplace(master_var,"#")
 checkMe:=RegExMatch(master_var,"#") ? 1:0
 Gui, Main: add, CheckBox, Hidden vhotkey255211840_addWinkey checked%checkMe%,Use modifer: Winkey
-Iniread,master_var,settings.ini,General>Hotkeys,moveAidKey									
-hotkey2127896190_oldkey:=master_var															
-Gui, Main: add, Hotkey, Hidden 0 vhotkey2127896190 X185 Y205 W150,% RegExReplace(master_var,"#")
-checkMe:=RegExMatch(master_var,"#") ? 1:0
-Gui, Main: add, CheckBox, Hidden vhotkey2127896190_addWinkey checked%checkMe%,Use modifer: Winkey
 Text=	
 (
 There is no input verification.
@@ -1425,7 +1066,7 @@ Gui, Main: add, CheckBox, Hidden vhotkey93298136_addWinkey checked%checkMe%,Use 
 Text=	
 (
 The key list is a comma delimited list of (ahk valid) keys, where each entry binds to a joystick button.
-The first entry binds to the first joystick buttons, and so on. Blanks and modifers are allowed.
+The first entry binds to the first joystick buttons, and so on. Blanks and modifiers are allowed.
 )
 Gui, Main: add, Text,Hidden vtext789866609 X185 Y80,%Text%
 Text= 
@@ -1448,23 +1089,23 @@ Follow instructions and don't try to break it.
 Gui, Main: add, Text,Hidden vtext1220495721 X170 Y25,%Text%
 Text= 
 Gui, Main: add, GroupBox,Hidden vtext388795812 X170 Y25 W510 H128,Keyboard Movement
-Gui, Main: add, GroupBox,Hidden vtext483483623 X170 Y170 W510 H78,Extra Settings
-Iniread,master_var,settings.ini,Mouse2Keyboard>Keys,upKey									
+Gui, Main: add, GroupBox,Hidden vtext483483623 X170 Y170 W510 H78,Extra Keyboard Keys
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,upKey									
 hotkey1964265821_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey1964265821 X290 Y40 W75,% RegExReplace(master_var,"#")
-Iniread,master_var,settings.ini,Mouse2Keyboard>Keys,downKey									
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,downKey									
 hotkey599253628_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey599253628 X290 Y65 W75,% RegExReplace(master_var,"#")
-Iniread,master_var,settings.ini,Mouse2Keyboard>Keys,leftKey									
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,leftKey									
 hotkey1278963789_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey1278963789 X290 Y115 W75,% RegExReplace(master_var,"#")
-Iniread,master_var,settings.ini,Mouse2Keyboard>Keys,rightKey									
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,rightKey									
 hotkey2130103637_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey2130103637 X290 Y90 W75,% RegExReplace(master_var,"#")
-Iniread,master_var,settings.ini,Mouse2Keyboard>Keys,LButtonReplacementKey									
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,walkToggleKey									
 hotkey225514912_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey225514912 X290 Y190 W75,% RegExReplace(master_var,"#")
-Iniread,master_var,settings.ini,Mouse2Keyboard>Keys,RButtonReplacementKey									
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,lockZLToggleKey									
 hotkey83004604_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey83004604 X290 Y215 W75,% RegExReplace(master_var,"#")
 Text=	
@@ -1503,33 +1144,33 @@ Toggle ZL Lock
 )
 Gui, Main: add, Text,Hidden vtext863373581 X185 Y220,%Text%
 Text= 
-Iniread,master_var,settings.ini,Visual aid,hideCursor									
+Iniread,master_var,settings.ini,Extra Settings,hideCursor									
 boxName=																				
 (
 Hide when controller is on.
 )
 checkMe:=(master_var="1" ) ? 1:(master_var="0" ? 0:-1)
-Gui, Main: add, Checkbox, Hidden  Checked%checkMe% vcheckbox1135789786 X185 Y160,%boxName%
+Gui, Main: add, Checkbox, Hidden  Checked%checkMe% vcheckbox1135789786 X185 Y215,%boxName%
 boxName= 
-Gui, Main: add, GroupBox,Hidden vtext1829586573 X170 Y140 W520 H45,Cursor
-Gui, Main: add, GroupBox,Hidden vtext833212790 X170 Y25 W520 H45,Enable visual aid
-Gui, Main: add, GroupBox,Hidden vtext1505650515 X170 Y80 W520 H45,Enable automatic placement of visual aid
-Gui, Main: add, GroupBox,Hidden vtext1612995781 X170 Y195 W520 H45,Enable nonlinear visual aid
-Iniread,master_var,settings.ini,Visual aid,visualAidIsOn
+Gui, Main: add, GroupBox,Hidden vtext1829586573 X170 Y195 W520 H45,Cursor
+Gui, Main: add, GroupBox,Hidden vtext833212790 X170 Y25 W520 H45,Enable BotW MouseWheel Weapon Change Feature
+Gui, Main: add, GroupBox,Hidden vtext1505650515 X170 Y80 W520 H45,Enable ZL Lock Key Feature
+;Gui, Main: add, GroupBox,Hidden vtext1612995781 X170 Y140 W520 H45,Enable nonlinear visual aid
+Iniread,master_var,settings.ini,Extra Settings,BotWmouseWheel
 checkMe:= (master_var="1") ? 1:0
 Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio2102688731_1 X185 Y45, Yes
 checkMe:= (master_var="0") ? 1:0
 Gui, Main: Add, Radio, Hidden ys Checked%checkMe% vradio2102688731_2,  No
-Iniread,master_var,settings.ini,Visual aid,autoPlaceVisualAid
+Iniread,master_var,settings.ini,Extra Settings,lockZL
 checkMe:= (master_var="1") ? 1:0
 Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio2030676791_1 X185 Y100, Yes
 checkMe:= (master_var="0") ? 1:0
-Gui, Main: Add, Radio, Hidden ys Checked%checkMe% vradio2030676791_2,  No
+Gui, Main: Add, Radio, Hidden ys Checked%checkMe% vradio2030676791_2, No               Note: key must also be set on KeyboardMovement>Keys
 
-Iniread,master_var,settings.ini,Visual aid,nnVA
+Iniread,master_var,settings.ini,Extra Settings,nnVA
 ; Button number: 1.
 checkMe:= (master_var="1") ? 1:0
-Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio487673732_1 X185 Y215, Yes
+Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio487673732_1 X185 Y160, Yes
 ; Button number: 2.
 checkMe:= (master_var="0") ? 1:0
 Gui, Main: Add, Radio, Hidden ys Checked%checkMe% vradio487673732_2,  No
@@ -1566,8 +1207,6 @@ submit_General>Hotkeys:
 	IniWrite,%hotkey26759803%, settings.ini, General>Hotkeys, controllerSwitchKey
 	hotkey255211840:=hotkey255211840_addWinkey ? "#" . hotkey255211840:hotkey255211840
 	IniWrite,%hotkey255211840%, settings.ini, General>Hotkeys, exitKey
-	hotkey2127896190:=hotkey2127896190_addWinkey ? "#" . hotkey2127896190:hotkey2127896190
-	IniWrite,%hotkey2127896190%, settings.ini, General>Hotkeys, moveAidKey
 if submitOnlyOne
 	return
 submit_Mouse2Joystick:
@@ -1597,46 +1236,46 @@ submit_Mouse2Joystick>Keys:
 	
 if submitOnlyOne
 	return
-submit_Mouse2Keyboard:
+submit_KeyboardMovement:
 if submitOnlyOne
 	return
-submit_Mouse2Keyboard>Keys:
+submit_KeyboardMovement>Keys:
 	hotkey1964265821:=RegExReplace(hotkey1964265821,"[!^+]+")
 	hotkey1964265821:=hotkey1964265821_addWinkey ? "#" . hotkey1964265821:hotkey1964265821
-	IniWrite,%hotkey1964265821%, settings.ini, Mouse2Keyboard>Keys, upKey
+	IniWrite,%hotkey1964265821%, settings.ini, KeyboardMovement>Keys, upKey
 	hotkey599253628:=RegExReplace(hotkey599253628,"[!^+]+")
 	hotkey599253628:=hotkey599253628_addWinkey ? "#" . hotkey599253628:hotkey599253628
-	IniWrite,%hotkey599253628%, settings.ini, Mouse2Keyboard>Keys, downKey
+	IniWrite,%hotkey599253628%, settings.ini, KeyboardMovement>Keys, downKey
 	hotkey1278963789:=RegExReplace(hotkey1278963789,"[!^+]+")
 	hotkey1278963789:=hotkey1278963789_addWinkey ? "#" . hotkey1278963789:hotkey1278963789
-	IniWrite,%hotkey1278963789%, settings.ini, Mouse2Keyboard>Keys, leftKey
+	IniWrite,%hotkey1278963789%, settings.ini, KeyboardMovement>Keys, leftKey
 	hotkey2130103637:=RegExReplace(hotkey2130103637,"[!^+]+")
 	hotkey2130103637:=hotkey2130103637_addWinkey ? "#" . hotkey2130103637:hotkey2130103637
-	IniWrite,%hotkey2130103637%, settings.ini, Mouse2Keyboard>Keys, rightKey
+	IniWrite,%hotkey2130103637%, settings.ini, KeyboardMovement>Keys, rightKey
 	hotkey225514912:=RegExReplace(hotkey225514912,"[!^+]+")
 	hotkey225514912:=hotkey225514912_addWinkey ? "#" . hotkey225514912:hotkey225514912
-	IniWrite,%hotkey225514912%, settings.ini, Mouse2Keyboard>Keys, LButtonReplacementKey
+	IniWrite,%hotkey225514912%, settings.ini, KeyboardMovement>Keys, walkToggleKey
 	hotkey83004604:=RegExReplace(hotkey83004604,"[!^+]+")
 	hotkey83004604:=hotkey83004604_addWinkey ? "#" . hotkey83004604:hotkey83004604
-	IniWrite,%hotkey83004604%, settings.ini, Mouse2Keyboard>Keys, RButtonReplacementKey
+	IniWrite,%hotkey83004604%, settings.ini, KeyboardMovement>Keys, lockZLToggleKey
 if submitOnlyOne
 	return
 submit_Visual_aid:
 			writeVal:=(checkbox1135789786=1) ? "1" : "0"
-			IniWrite,%writeVal%, settings.ini, Visual aid, hideCursor
+			IniWrite,%writeVal%, settings.ini, Extra Settings, hideCursor
 		if (radio2102688731_1=1)
-			IniWrite,1, settings.ini, Visual aid, visualAidIsOn
+			IniWrite,1, settings.ini, Extra Settings, BotWmouseWheel
 		if (radio2102688731_2=1)
-			IniWrite,0, settings.ini, Visual aid, visualAidIsOn
+			IniWrite,0, settings.ini, Extra Settings, BotWmouseWheel
 		if (radio2030676791_1=1)
-			IniWrite,1, settings.ini, Visual aid, autoPlaceVisualAid
+			IniWrite,1, settings.ini, Extra Settings, lockZL
 		if (radio2030676791_2=1)
-			IniWrite,0, settings.ini, Visual aid, autoPlaceVisualAid
+			IniWrite,0, settings.ini, Extra Settings, lockZL
 		
 		if (radio487673732_1=1)
-			IniWrite,1, settings.ini, Visual aid, nnVA
+			IniWrite,1, settings.ini, Extra Settings, nnVA
 		if (radio487673732_2=1)
-			IniWrite,0, settings.ini, Visual aid, nnVA
+			IniWrite,0, settings.ini, Extra Settings, nnVA
 if submitOnlyOne
 	return
 return
@@ -1683,7 +1322,7 @@ GuiControl, Main: Show%hideShow%, text303295627
 */
 GuiControl, Main: Show%hideShow%, text1950133817
 /*
-Range, (0,1). The center area (pink in the visual aid) where no output is sent.
+Range, (0,1). The center area where no output is sent.
 */
 GuiControl, Main: Show%hideShow%, text1365655690
 /*
@@ -1742,27 +1381,28 @@ Mouse2Joystick>Keys:
 GuiControl, Main: Show%hideShow%, edit1874406880
 GuiControl, Main: Enable%hideShow%, edit1874406880
 GuiControl, Main: Show%hideShow%, text906325482
-GuiControl, Main: Show%hideShow%, text1019731688
-GuiControl, Main: Show%hideShow%, hotkey932981360
-GuiControl, Main: Enable%hideShow%, hotkey932981360
-GuiControl, Main: Show%hideShow%, hotkey932981360_addWinkey
-GuiControl, Main: Enable%hideShow%, hotkey932981360_addWinkey
+;KeyList Page
+;GuiControl, Main: Show%hideShow%, text1019731688
+;GuiControl, Main: Show%hideShow%, hotkey932981360
+;GuiControl, Main: Enable%hideShow%, hotkey932981360
+;GuiControl, Main: Show%hideShow%, hotkey932981360_addWinkey
+;GuiControl, Main: Enable%hideShow%, hotkey932981360_addWinkey
 
-GuiControl, Main: Show%hideShow%, hotkey93298136
-GuiControl, Main: Enable%hideShow%, hotkey93298136
-GuiControl, Main: Show%hideShow%, hotkey93298136_addWinkey
-GuiControl, Main: Enable%hideShow%, hotkey93298136_addWinkey
+;GuiControl, Main: Show%hideShow%, hotkey93298136
+;GuiControl, Main: Enable%hideShow%, hotkey93298136
+;GuiControl, Main: Show%hideShow%, hotkey93298136_addWinkey
+;GuiControl, Main: Enable%hideShow%, hotkey93298136_addWinkey
 
 /*
 The key list is a comma delimited list of (ahk valid) keys, where each entry binds to a joystick button.
-The first entry binds to the first joystick buttons, and so on. Blanks and modifers are allowed.
+The first entry binds to the first joystick buttons, and so on. Blanks and modifiers are allowed.
 */
 GuiControl, Main: Show%hideShow%, text789866609
 /*
 Fix stick to current position:
 */
-GuiControl, Main: Show%hideShow%, text191419274
-GuiControl, Main: Show%hideShow%, text19141927
+;GuiControl, Main: Show%hideShow%, text191419274
+;GuiControl, Main: Show%hideShow%, text19141927
 return
 KeyboardMovement:
 /*
@@ -1823,20 +1463,20 @@ Right mouse button
 */
 GuiControl, Main: Show%hideShow%, text863373581
 return
-Hide_Cursor:
+Extra_Settings:
 GuiControl, Main: Show%hideShow%, checkbox1135789786
 GuiControl, Main: Enable%hideShow%, checkbox1135789786
 GuiControl, Main: Show%hideShow%, text1829586573
-;GuiControl, Main: Show%hideShow%, text833212790
-;GuiControl, Main: Show%hideShow%, text1505650515
-;GuiControl, Main: Show%hideShow%, radio2102688731_1
-;GuiControl, Main: Enable%hideShow%, radio2102688731_1
-;GuiControl, Main: Show%hideShow%, radio2102688731_2
-;GuiControl, Main: Enable%hideShow%, radio2102688731_2
-;GuiControl, Main: Show%hideShow%, radio2030676791_1
-;GuiControl, Main: Enable%hideShow%, radio2030676791_1
-;GuiControl, Main: Show%hideShow%, radio2030676791_2
-;GuiControl, Main: Enable%hideShow%, radio2030676791_2
+GuiControl, Main: Show%hideShow%, text833212790
+GuiControl, Main: Show%hideShow%, text1505650515
+GuiControl, Main: Show%hideShow%, radio2102688731_1
+GuiControl, Main: Enable%hideShow%, radio2102688731_1
+GuiControl, Main: Show%hideShow%, radio2102688731_2
+GuiControl, Main: Enable%hideShow%, radio2102688731_2
+GuiControl, Main: Show%hideShow%, radio2030676791_1
+GuiControl, Main: Enable%hideShow%, radio2030676791_1
+GuiControl, Main: Show%hideShow%, radio2030676791_2
+GuiControl, Main: Enable%hideShow%, radio2030676791_2
 
 ; NNVA
 ;GuiControl, Main: Show%hideShow%, text1612995781
@@ -1940,7 +1580,7 @@ tree=
 39872576;Keys;0;0
 39872960;KeyboardMovement;39873152;39873056
 39873056;Keys;0;0
-39873152;Hide Cursor;0;0
+39873152;Extra Settings;0;0
 )
 return
 
@@ -1959,7 +1599,6 @@ fallBackPause=-1
 nnp=.65
 controllerSwitchKey=F1
 exitKey=#q
-moveAidKey=
 angularDeadZone=0
 invertedX=0
 invertedY=1
@@ -1970,12 +1609,11 @@ upKey=w
 downKey=s
 leftKey=a
 rightKey=d
-LButtonReplacementKey=Numpad0
-RButtonReplacementKey=Numpad1
-kr=21
+walkToggleKey=Numpad0
+lockZLToggleKey=Numpad1
 hideCursor=1
-visualAidIsOn=0
-autoPlaceVisualAid=1
+BotWmouseWheel=0
+lockZL=0
 nnVA=1
 )
 	Loop,Parse,pairsDefault,`n
