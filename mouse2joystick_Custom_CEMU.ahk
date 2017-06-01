@@ -26,11 +26,11 @@
 SendMode Input  														; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
 #Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
+; Settings
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
 #InstallMouseHook
 #SingleInstance Force
-; Settings
 CoordMode,Mouse,Screen
 SetMouseDelay,-1
 SetBatchLines,-1
@@ -38,10 +38,16 @@ SetBatchLines,-1
 OnExit("exitFunc")
 toggle:=1													; On/off parameter for the hotkey.	Toggle 0 means controller is on. The placement of this variable is disturbing.
 ; Icon
-Menu,Tray,Tip, mouse2joystick Custom for CEMU
+Menu,Tray,Tip, mouse2joystick Customized for CEMU
 Menu,Tray,NoStandard
+
+IF (A_OSVersion < "10.0.15063") ; It appears that the Icon has changed number on the newest versions of Windows.
+	useIcon := 26
+Else
+	useIcon := 27
+
 try
-	Menu,Tray,Icon,ddores.dll,26
+	Menu,Tray,Icon,ddores.dll, %useIcon% 
 ;Menu,Settings,openSettings
 Menu,Tray,Add,Settings,openSettings
 Menu,Tray,Add,
@@ -184,7 +190,7 @@ Return
 ; End autoexec.
 
 selectGameMenu:
-	TrayTip, Game reset to cemu.exe, If you want something different manually edit the 'settinigs.ini' file
+	TrayTip, % "Game reset to cemu.exe", % "If you want something different manually edit the settings, or 'settings.ini' file directly"
 	gameExe := "cemu.exe"
 	IniWrite, %gameExe%, settings.ini, General, gameExe
 return
@@ -198,7 +204,7 @@ aboutMenu:
 return
 
 helpMenu:
-	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nWill Open link in default browser.
+	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nIt is helpful to know the version (%version%)`nand if possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
 	IfMsgBox Yes
 		Run, https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/
 return
