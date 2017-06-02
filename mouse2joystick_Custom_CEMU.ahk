@@ -1,6 +1,6 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2017-05-31
+;	Last Modified Date: 2017-06-02
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -93,6 +93,7 @@ leftKey=a
 rightKey=d
 walkToggleKey=Numpad0
 lockZLToggleKey=Numpad1
+gyroToggleKey=v
 [Extra Settings]
 hideCursor=1
 BotWmouseWheel=0
@@ -141,7 +142,7 @@ angularDeadZone*=pi/180											; Convert to radians
 angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
 
 ; Constants and such. Some values are commented out because they have been stored in the settings.ini file instead, but are kept because they have comments.
-version := "v0.1.0.0"
+version := "v0.1.1.0"
 moveStickHalf := False
 KeyList := []
 
@@ -190,7 +191,7 @@ Return
 ; End autoexec.
 
 selectGameMenu:
-	TrayTip, % "Game reset to cemu.exe", % "If you want something different manually edit the settings, or 'settings.ini' file directly"
+	TrayTip, % "Game reset to cemu.exe", % "If you want something different manually edit the settings, or 'settings.ini' file directly",,0x10
 	gameExe := "cemu.exe"
 	IniWrite, %gameExe%, settings.ini, General, gameExe
 return
@@ -354,6 +355,7 @@ mouse2joystickHotkeys:
 			Hotkey,WheelUp, overwriteWheelUp, on
 			Hotkey,WheelDown, overwriteWheelDown, on
 		}
+		HotKey,%gyroToggleKey%, GyroControl, on
 		Hotkey,%upKey%, overwriteUp, on 
 		Hotkey,%upKey% Up, overwriteUpup, on
 		Hotkey,%leftKey%, overwriteLeft, on 
@@ -418,6 +420,17 @@ releaseJoyButton:
 	Else if joyButtonNumber
 		vstick.SetBtn(0,joyButtonNumber)
 return
+
+GyroControl:
+	Thread, NoTimers
+	Gui, Controller:Hide
+	ControlClick,, ahk_exe %gameEXE%,, R,,D
+	While (GetKeyState(A_ThisHotkey, "P"))
+		Continue
+	ControlClick,, ahk_exe %gameEXE%,, R,,U
+	Gui, Controller:Show, NA
+Return
+
 
 toggleAimLock:
 	vstick.SetBtn((ZLToggle := !ZLToggle),7)
@@ -878,6 +891,7 @@ mainOk:
 		Hotkey,WheelUp, overwriteWheelUp, off
 		Hotkey,WheelDown, overwriteWheelDown, off
 	}
+	HotKey,%gyroToggleKey%, GyroControl, off
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
@@ -1095,7 +1109,7 @@ Follow instructions and don't try to break it.
 Gui, Main: add, Text,Hidden vtext1220495721 X170 Y25,%Text%
 Text= 
 Gui, Main: add, GroupBox,Hidden vtext388795812 X170 Y25 W510 H128,Keyboard Movement
-Gui, Main: add, GroupBox,Hidden vtext483483623 X170 Y170 W510 H78,Extra Keyboard Keys
+Gui, Main: add, GroupBox,Hidden vtext483483623 X170 Y170 W510 H103,Extra Keyboard Keys
 Iniread,master_var,settings.ini,KeyboardMovement>Keys,upKey									
 hotkey1964265821_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey1964265821 X290 Y40 W75,% RegExReplace(master_var,"#")
@@ -1114,6 +1128,9 @@ Gui, Main: add, Hotkey, Hidden Limit190 vhotkey225514912 X290 Y190 W75,% RegExRe
 Iniread,master_var,settings.ini,KeyboardMovement>Keys,lockZLToggleKey									
 hotkey83004604_oldkey:=master_var															
 Gui, Main: add, Hotkey, Hidden Limit190 vhotkey83004604 X290 Y215 W75,% RegExReplace(master_var,"#")
+Iniread,master_var,settings.ini,KeyboardMovement>Keys,gyroToggleKey									
+hotkey83004605_oldkey:=master_var															
+Gui, Main: add, Hotkey, Hidden Limit190 vhotkey83004605 X290 Y240 W75,% RegExReplace(master_var,"#")
 Text=	
 (
 Up
@@ -1149,6 +1166,12 @@ Text=
 Toggle ZL Lock
 )
 Gui, Main: add, Text,Hidden vtext863373581 X185 Y220,%Text%
+Text= 
+Text=	
+(
+Toggle Gyro
+)
+Gui, Main: add, Text,Hidden vtext863373582 X185 Y245,%Text%
 Text= 
 Iniread,master_var,settings.ini,Extra Settings,hideCursor									
 boxName=																				
@@ -1262,8 +1285,11 @@ submit_KeyboardMovement>Keys:
 	hotkey225514912:=hotkey225514912_addWinkey ? "#" . hotkey225514912:hotkey225514912
 	IniWrite,%hotkey225514912%, settings.ini, KeyboardMovement>Keys, walkToggleKey
 	hotkey83004604:=RegExReplace(hotkey83004604,"[!^+]+")
-	hotkey83004604:=hotkey83004604_addWinkey ? "#" . hotkey83004604:hotkey83004604
+	;hotkey83004604:=hotkey83004604_addWinkey ? "#" . hotkey83004604:hotkey83004604
 	IniWrite,%hotkey83004604%, settings.ini, KeyboardMovement>Keys, lockZLToggleKey
+	hotkey83004605:=RegExReplace(hotkey83004605,"[!^+]+")
+	hotkey83004605:=hotkey83004605_addWinkey ? "#" . hotkey83004605:hotkey83004605
+	IniWrite,%hotkey83004605%, settings.ini, KeyboardMovement>Keys, gyroToggleKey
 if submitOnlyOne
 	return
 submit_Visual_aid:
@@ -1442,8 +1468,10 @@ GuiControl, Main: Show%hideShow%, hotkey225514912_addWinkey
 GuiControl, Main: Enable%hideShow%, hotkey225514912_addWinkey
 GuiControl, Main: Show%hideShow%, hotkey83004604
 GuiControl, Main: Enable%hideShow%, hotkey83004604
-GuiControl, Main: Show%hideShow%, hotkey83004604_addWinkey
-GuiControl, Main: Enable%hideShow%, hotkey83004604_addWinkey
+;GuiControl, Main: Show%hideShow%, hotkey83004604_addWinkey
+;GuiControl, Main: Enable%hideShow%, hotkey83004604_addWinkey
+GuiControl, Main: Show%hideShow%, hotkey83004605
+GuiControl, Main: Enable%hideShow%, hotkey83004605
 /*
 Up
 */
@@ -1461,13 +1489,17 @@ Right
 */
 GuiControl, Main: Show%hideShow%, text172497039
 /*
-Left mouse button
+Toggle Walk Text
 */
 GuiControl, Main: Show%hideShow%, text996303547
 /*
-Right mouse button
+ZL Toggle Text
 */
 GuiControl, Main: Show%hideShow%, text863373581
+/*
+Gyro Toggle Text
+*/
+GuiControl, Main: Show%hideShow%, text863373582
 return
 Extra_Settings:
 GuiControl, Main: Show%hideShow%, checkbox1135789786
@@ -1617,6 +1649,7 @@ leftKey=a
 rightKey=d
 walkToggleKey=Numpad0
 lockZLToggleKey=Numpad1
+gyroToggleKey=v
 hideCursor=1
 BotWmouseWheel=0
 lockZL=0
