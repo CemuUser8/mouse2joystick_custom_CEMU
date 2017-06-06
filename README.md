@@ -52,6 +52,11 @@ At this point the script should work with the default keys and options I had set
 
 &nbsp;
 
-* To change all other keys all you need to do is update the KeyList under[ 'Mouse2Joystick->Keys'](http://i.imgur.com/ABinaii.png), I've included an excel [Helper File](http://i.imgur.com/0kE56XJ.png) that should make it easy to generate the keys. Make sure you don't use whatever keys you have set up for movement as a button key.
+You can change your key mappings by following these instructions:
+* You goto the KeyList page and press the KeyList Helper Button located on [Mouse2JoyStick>Keys page](http://i.imgur.com/JyzT21Q.png)
+* You will then see an updated version of [this screen come up.](http://i.imgur.com/hdavP22.png)
+	* [Example of Manually Clicking Through](https://gfycat.com/ArtisticDelayedDwarfrabbit)
+	* [Example of Auto Cycling Through](https://gfycat.com/FinishedUglyHummingbird)
+* When you click save you will see the KeyList string update itself with any changes you've made.
 
-  * Look at [my layout](http://i.imgur.com/zJlASOK.png) and you'll see it that every key is assigned a button, and then if you look at [my helper file](http://i.imgur.com/0kE56XJ.png) you will see that it has the Button numbers and which Wii U key it is assigned to, you can then change the **Keyboard Key** column to whatever you want (Special keys, like mouse buttons, [must in in valid format](https://autohotkey.com/docs/KeyList.htm)) you then take the generated KeyList from the middle and [paste it into the script.](http://i.imgur.com/ABinaii.png)
+That's it, when you click OK on the main settings screen, your keys are now mapped how you have set.
