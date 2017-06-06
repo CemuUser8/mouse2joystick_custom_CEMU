@@ -59,6 +59,7 @@ You can change your key mappings by following these instructions:
 	* [Example of Manually Clicking Through](https://gfycat.com/ArtisticDelayedDwarfrabbit)
 	* [Example of Auto Cycling Through](https://gfycat.com/FinishedUglyHummingbird)
 * When you click save you will see the KeyList string update itself with any changes you've made.
+
 That's it, when you click OK on the main settings screen, your keys are now mapped how you have set.
 
 * Note you can still keep KeyList strings for different games saved to a text file locally and just paste it in (like it used to have to be done)
