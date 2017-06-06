@@ -53,8 +53,9 @@ At this point the script should work with the default keys and options I had set
 &nbsp;
 
 You can change your key mappings by following these instructions:
+
 * You goto the KeyList page and press the KeyList Helper Button located on [Mouse2JoyStick>Keys page](http://i.imgur.com/JyzT21Q.png)
-* You will then see an updated version of [this screen come up.](http://i.imgur.com/hdavP22.png)
+* You will then see an updated version of [this screen come up,](http://i.imgur.com/hdavP22.png) I've done my best to make it look like CEMU's Input settings so it should look familiar.
 	* [Example of Manually Clicking Through](https://gfycat.com/ArtisticDelayedDwarfrabbit)
 	* [Example of Auto Cycling Through](https://gfycat.com/FinishedUglyHummingbird)
 * When you click save you will see the KeyList string update itself with any changes you've made.
