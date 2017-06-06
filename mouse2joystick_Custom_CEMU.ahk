@@ -22,6 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
+version := "v0.2.0.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input  														; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -104,7 +105,7 @@ nnVA=1
 	If ErrorLevel
 	{
 		Msgbox,% 6+16,Error writing to file., There was a problem creating settings.ini
-		, make sure you have permision to write to file at %A_ScriptDir%. If the problem persists`, try to run as administator or change the script directory. Press retry to try again`, continue to set all settings to default or cancel to exit application.
+		, make sure you have permission to write to file at %A_ScriptDir%. If the problem persists`, try to run as administrator or change the script directory. Press retry to try again`, continue to set all settings to default or cancel to exit application.
 		IfMsgBox Retry
 			reload
 		else IfMsgBox Continue
@@ -142,9 +143,9 @@ angularDeadZone*=pi/180											; Convert to radians
 angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
 
 ; Constants and such. Some values are commented out because they have been stored in the settings.ini file instead, but are kept because they have comments.
-version := "v0.1.1.0"
 moveStickHalf := False
 KeyList := []
+KeyListByNum := []
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
@@ -1070,19 +1071,20 @@ Iniread,editText,settings.ini,Mouse2Joystick>Keys,joystickButtonKeyList
 editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
 Gui, Main: add, Edit,Hidden -Wrap   vedit1874406880 X185 Y50 r1 w475,%editText%
 editText= 
-Gui, Main: add, GroupBox,Hidden vtext906325482 X170 Y25 W520 H88,Keylist
-Gui, Main: add, GroupBox,Hidden vtext1019731688 X170 Y125 W520 H92,Hotkeys
-Iniread,master_var,settings.ini,Mouse2Joystick>Keys,autoHoldStickKey									
-hotkey932981360_oldkey:=master_var															
-Gui, Main: add, Hotkey, Hidden 0 vhotkey932981360 X185 Y165 W150,% RegExReplace(master_var,"#")
-checkMe:=RegExMatch(master_var,"#") ? 1:0
-Gui, Main: add, CheckBox, Hidden vhotkey932981360_addWinkey checked%checkMe%,Use modifer: Winkey
+;Gui, Main: add, GroupBox,Hidden vtext906325482 X170 Y25 W520 H88,Keylist
+;Gui, Main: add, GroupBox,Hidden vtext1019731688 X170 Y125 W520 H92,Hotkeys
+;Iniread,master_var,settings.ini,Mouse2Joystick>Keys,autoHoldStickKey									
+;hotkey932981360_oldkey:=master_var															
+;Gui, Main: add, Hotkey, Hidden 0 vhotkey932981360 X185 Y165 W150,% RegExReplace(master_var,"#")
+;checkMe:=RegExMatch(master_var,"#") ? 1:0
+;Gui, Main: add, CheckBox, Hidden vhotkey932981360_addWinkey checked%checkMe%,Use modifer: Winkey
 
-Iniread,master_var,settings.ini,Mouse2Joystick>Keys,fixRadiusKey																					
-Gui, Main: add, Hotkey, Hidden 0 vhotkey93298136 X355 Y165 W150,% RegExReplace(master_var,"#")
-checkMe:=RegExMatch(master_var,"#") ? 1:0
-Gui, Main: add, CheckBox, Hidden vhotkey93298136_addWinkey checked%checkMe%,Use modifer: Winkey
+;Iniread,master_var,settings.ini,Mouse2Joystick>Keys,fixRadiusKey																					
+;Gui, Main: add, Hotkey, Hidden 0 vhotkey93298136 X355 Y165 W150,% RegExReplace(master_var,"#")
+;checkMe:=RegExMatch(master_var,"#") ? 1:0
+;Gui, Main: add, CheckBox, Hidden vhotkey93298136_addWinkey checked%checkMe%,Use modifer: Winkey
 
+GUI, Main: Add, Button, Hidden vKeyListHelperButton gKeyListHelper x185 y150 r1 w475 Center, KeyList Helper
 Text=	
 (
 The key list is a comma delimited list of (ahk valid) keys, where each entry binds to a joystick button.
@@ -1412,6 +1414,8 @@ return
 Mouse2Joystick>Keys:
 GuiControl, Main: Show%hideShow%, edit1874406880
 GuiControl, Main: Enable%hideShow%, edit1874406880
+GuiControl, Main: Show%hideShow%, KeyListHelperButton
+GuiControl, Main: Enable%hideShow%, KeyListHelperButton
 GuiControl, Main: Show%hideShow%, text906325482
 ;KeyList Page
 ;GuiControl, Main: Show%hideShow%, text1019731688
@@ -1662,3 +1666,203 @@ nnVA=1
 	}
 	Goto, readSettingsSkippedDueToError
 return
+
+
+KeyListHelper:
+GUI, Main:Default
+GUIControlGet, getKeyList,, edit1874406880
+KeyListByNum := []
+Loop, Parse, getKeyList, `,
+{
+	keyName := A_LoopField
+	if !keyName
+		continue
+	KeyListByNum[A_Index] := keyName
+}
+
+setToggle := False
+GUI, Main:+Disabled
+GUI, KeyHelper:New, +HWNDKeyHelperHWND -MinimizeBox +OwnerMain
+GUI, Margin, 10, 7.5
+GUI, Add, Text, W0 H0 vLoseFocus, Hidden
+GUI, Add, Text, w60 R1 Right Section, A
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[1]
+GUI, Add, Text, w60 xs R1 Right, B
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[2]
+GUI, Add, Text, w60 xs R1 Right, X
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[3]
+GUI, Add, Text, w60 xs R1 Right, Y
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[4]
+GUI, Add, Text, w60 xs R1 Right, L
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[5]
+GUI, Add, Text, w60 xs R1 Right, R
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[6]
+GUI, Add, Text, w60 xs R1 Right, ZL
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[7]
+GUI, Add, Text, w60 xs R1 Right, ZR
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[8]
+GUI, Add, Text, w60 xs R1 Right, +
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[9]
+GUI, Add, Text, w60 xs R1 Right, -
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[10]
+GUI, Add, Text, w60 ys R1 Right Section, l-click
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[11]
+GUI, Add, Text, w60 ys R1 Right Section, r-click
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[12]
+GUI, Add, Text, w60 ys R1 Right Section, d-up
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[13]
+GUI, Add, Text, w60 xs R1 Right, d-down
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[14]
+GUI, Add, Text, w60 xs R1 Right, d-left
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[15]
+GUI, Add, Text, w60 xs R1 Right, d-right
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[16]
+GUI, Add, Text, w0 xs R1 Right, Dummy
+GUI, Add, Text, w60 xs R1 Right, blow-mic
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[17]
+GUI, Add, Text, w0 xm+230 R1 Right, Dummy
+GUI, Add, Button, xp yp-30 w80 gSaveButton Section, Save
+GUI, Add, Button, x+m w80 gCancelButton, Cancel
+GUI, Add, Button, xs yp-30 w170 gAutoLoop, Auto Cycle
+GUI, Add, Button, xs yp-60 w170 gClearButton, Clear
+
+GUI, Show,, KeyList Helper
+GuiControl, Focus, LoseFocus
+Return
+
+ClearButton:
+	GUI, KeyHelper:Default
+	Loop 17
+		GUIControl,,Edit%A_Index%,
+Return
+
+CancelButton:
+KeyHelperGUIClose:
+	GUI, Main:-Disabled
+	GUI, KeyHelper:Destroy
+Return
+
+SaveButton:
+	tempList := ""
+	Loop 17
+	{
+	GUIControlGet, tempKey,,Edit%A_Index%
+		tempList .= tempKey . ","
+	}
+	tempList := SubStr(tempList,1, StrLen(tempList)-1)
+GUI, Main:Default
+GUIControl,, edit1874406880, %tempList%
+GoSub, KeyHelperGUIClose
+Return
+
+
+#If WinActive("KeyList Helper") AND !setToggle
+~LButton::
+	GUI, KeyHelper:Default
+	KeyWait, LButton
+
+	setToggle := True
+	MouseGetPos,,,, useControl
+	IF (InStr(useControl, "Edit"))
+		GetKey()
+	setToggle := False
+	#IfWinActive
+
+	clearFocus:
+	GuiControl, Focus, LoseFocus
+Return
+
+AutoLoop:
+	GUI, KeyHelper:Default
+	setToggle := True
+	Loop 17 {
+		useControl := "Edit" . A_Index
+		GetKey()
+	}
+	setToggle := False
+	GoSub, clearFocus
+	MsgBox, Done
+Return
+
+GetKey() {
+	Global
+	GoSub, TurnOn
+	MousePressed := False
+	GUIControl, -E0x200, %useControl%
+	GuiControl,Text, %useControl%, Waiting
+	Input, singleKey, L1, {Tab}{Enter}{Space}{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}{AppsKey}{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{F9}{F10}{F11}{F12}{Left}{Right}{Up}{Down}{Home}{End}{PgUp}{PgDn}{Del}{Ins}{BS}{Capslock}{Numlock}{PrintScreen}{Pause}{Esc}{NumPad1}{NumPad2}{NumPad3}{NumPad4}{NumPad5}{NumPad6}{NumPad7}{NumPad8}{NumPad9}{NumPad0}{NumPadDiv}{NumPadMult}{NumPadAdd}{NumPadSub}{NumPadEnter}{NumpadDot}
+	GoSub, TurnOff
+	IF (InStr(ErrorLevel, "EndKey:"))
+		singleKey := SubStr(ErrorLevel, 8)
+	Else
+		singleKey := Format("{:Ls}", singleKey)
+	
+	IF (MousePressed)
+		singleKey := MousePressed
+	Else IF (singleKey = "LControl")
+		singleKey := "LCtrl"
+	Else IF (singleKey = "RControl")
+		singleKey := "RCtrl"
+		
+	GuiControl, Text, %useControl%, %singleKey%
+	GUIControl, +E0x200, %useControl%
+	Loop 17
+	{
+		GUIControlGet, tempKey,,Edit%A_Index%
+		IF (tempKey = singleKey AND useControl != "Edit" . A_Index)
+			GuiControl, Text, Edit%A_Index%,
+	}
+Return
+}
+
+WM_LBUTTONDOWN() {
+	Global useControl, MousePressed
+	Send, {Esc}
+	MousePressed := "LButton"
+	GoSub, TurnOff
+	Return 0
+}
+
+WM_RBUTTONDOWN() {
+	Global useControl, MousePressed
+	Send, {Esc}
+	MousePressed := "RButton"
+	GoSub, TurnOff
+	Return 0
+}
+
+WM_MBUTTONDOWN() {
+	Global useControl, MousePressed
+	Send, {Esc}
+	MousePressed := "MButton"
+	GoSub, TurnOff
+	Return 0
+}
+
+WM_XBUTTONDOWN(w) {
+	Global useControl, MousePressed
+	Send, {Esc}
+	SetFormat, IntegerFast, Hex
+	IF ((w & 0xFF) = 0x20)
+		MousePressed := "XButton1"
+	Else IF((w & 0xFF) = 0x40)
+		MousePressed := "XButton2"
+	
+	GoSub, TurnOff
+	Return 0
+}
+
+TurnOn:
+OnMessage(0x0201, "WM_LBUTTONDOWN")
+OnMessage(0x0204, "WM_RBUTTONDOWN")
+OnMessage(0x0207, "WM_MBUTTONDOWN")
+OnMessage(0x020B, "WM_XBUTTONDOWN")
+Return
+
+TurnOff:
+OnMessage(0x0201, "")
+OnMessage(0x0204, "")
+OnMessage(0x0207, "")
+OnMessage(0x020B, "")
+Return
+
