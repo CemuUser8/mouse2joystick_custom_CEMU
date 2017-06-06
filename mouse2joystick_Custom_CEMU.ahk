@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.2.0.1"
+version := "v0.2.0.2"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input  														; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -1667,11 +1667,12 @@ nnVA=1
 	Goto, readSettingsSkippedDueToError
 return
 
-#IF WinActive("KeyList Helper") AND !setToggle
+#IF KeyHelperRunning(setToggle)
 #IF
 KeyListHelper:
-Hotkey, IF, % "WinActive(""KeyList Helper"") AND !setToggle"
+Hotkey, IF, KeyHelperRunning(setToggle)
 HotKey,~LButton, getControl, On
+Hotkey, IF
 GUI, Main:Default
 GUIControlGet, getKeyList,, edit1874406880
 KeyListByNum := []
@@ -1741,7 +1742,9 @@ Return
 
 CancelButton:
 KeyHelperGUIClose:
+	Hotkey, IF, KeyHelperRunning(setToggle)
 	HotKey,~LButton, getControl, Off
+	Hotkey, IF
 	GUI, Main:-Disabled
 	GUI, KeyHelper:Destroy
 Return
@@ -1764,8 +1767,8 @@ getControl:
 	KeyWait, LButton
 
 	setToggle := True
-	MouseGetPos,,,, useControl
-	IF (InStr(useControl, "Edit"))
+	MouseGetPos,,, mouseWin, useControl, 1
+	IF (InStr(useControl, "Edit") AND mouseWin = KeyHelperHWND)
 		GetKey()
 	setToggle := False
 
@@ -1785,6 +1788,10 @@ AutoLoop:
 	GoSub, clearFocus
 	MsgBox, Done
 Return
+
+KeyHelperRunning(setTog){
+	Return (WinActive("KeyList Helper") AND !setTog)
+}
 
 GetKey() {
 	Global
