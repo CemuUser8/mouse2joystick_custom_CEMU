@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.2.0.0"
+version := "v0.2.0.1"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input  														; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -1667,8 +1667,11 @@ nnVA=1
 	Goto, readSettingsSkippedDueToError
 return
 
-
+#IF WinActive("KeyList Helper") AND !setToggle
+#IF
 KeyListHelper:
+Hotkey, IF, % "WinActive(""KeyList Helper"") AND !setToggle"
+HotKey,~LButton, getControl, On
 GUI, Main:Default
 GUIControlGet, getKeyList,, edit1874406880
 KeyListByNum := []
@@ -1738,6 +1741,7 @@ Return
 
 CancelButton:
 KeyHelperGUIClose:
+	HotKey,~LButton, getControl, Off
 	GUI, Main:-Disabled
 	GUI, KeyHelper:Destroy
 Return
@@ -1755,9 +1759,7 @@ GUIControl,, edit1874406880, %tempList%
 GoSub, KeyHelperGUIClose
 Return
 
-
-#If WinActive("KeyList Helper") AND !setToggle
-~LButton::
+getControl:
 	GUI, KeyHelper:Default
 	KeyWait, LButton
 
@@ -1766,7 +1768,7 @@ Return
 	IF (InStr(useControl, "Edit"))
 		GetKey()
 	setToggle := False
-	#IfWinActive
+
 
 	clearFocus:
 	GuiControl, Focus, LoseFocus
