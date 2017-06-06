@@ -1742,6 +1742,8 @@ Return
 
 CancelButton:
 KeyHelperGUIClose:
+	IF (setToggle)
+		Return
 	Hotkey, IF, KeyHelperRunning(setToggle)
 	HotKey,~LButton, getControl, Off
 	Hotkey, IF
@@ -1779,12 +1781,16 @@ Return
 
 AutoLoop:
 	GUI, KeyHelper:Default
+	Loop 4
+		GUIControl, +Disabled, Button%A_Index%
 	setToggle := True
 	Loop 17 {
 		useControl := "Edit" . A_Index
 		GetKey()
 	}
 	setToggle := False
+	Loop 4
+		GUIControl, -Disabled, Button%A_Index%
 	GoSub, clearFocus
 	MsgBox, Done
 Return
