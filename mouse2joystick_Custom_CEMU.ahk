@@ -22,9 +22,9 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.2.0.2"
+version := "v0.2.0.3"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
-SendMode Input  														; Recommended for new scripts due to its superior speed and reliability.
+SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
 #Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
 ; Settings
@@ -74,8 +74,8 @@ vJoyDevice=1
 [General>Setup]
 r=40
 k=0.02
-fallBackPause=-1
-nnp=.65
+freq=25
+nnp=.55
 [General>Hotkeys]
 controllerSwitchKey=F1
 exitKey=#q
@@ -108,23 +108,23 @@ nnVA=1
 		, make sure you have permission to write to file at %A_ScriptDir%. If the problem persists`, try to run as administrator or change the script directory. Press retry to try again`, continue to set all settings to default or cancel to exit application.
 		IfMsgBox Retry
 			reload
-		else IfMsgBox Continue
+		Else IfMsgBox Continue
 			Goto, setSettingsToDefault	; Currently at bottom of script
-		else 
+		Else 
 			ExitApp
 	}
 }
 
 ; Read settings.
 IniRead,allSections,settings.ini
-if (!allSections || allSections="ERROR") ; Do not think this is ever set to ERROR.
+If (!allSections || allSections="ERROR") ; Do not think this is ever set to ERROR.
 {
 	MsgBox, % 2+16, Error reading file, There was an error reading the settings.ini file`, press retry to try again`, continue to set all settings to default or cancel to exit application.
 	IfMsgBox retry
 		reload
-	else IfMsgBox Ignore
+	Else IfMsgBox Ignore
 		Goto, setSettingsToDefault	; Currently at bottom of script
-	else 
+	Else 
 		ExitApp
 }
 Loop,Parse,allSections,`n
@@ -136,7 +136,7 @@ Loop,Parse,allSections,`n
 		%keyValue1%:=keyValue2
 	}
 }
-readSettingsSkippedDueToError:	; This comes from setSettingsToDefault if there was an error.
+readSettingsSkippedDueToError:	; This comes from setSettingsToDefault If there was an error.
 
 pi:=atan(1)*4													; Approx pi.
 angularDeadZone*=pi/180											; Convert to radians
@@ -153,14 +153,15 @@ dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might
 Hotkey,%controllerSwitchKey%,controllerSwitch, on
 Hotkey,%exitKey%,exitFunc, on
 
-freq:=25										; Controllers update frequency, in ms.
-actionTaken:=0									; For handling quick fall back to center. Needs to start at zero.
 mouse2joystick := True
-if mouse2joystick
+If mouse2joystick
 {
 	Gosub, initCvJoyInterface
 	Gosub, mouse2joystickHotkeys
 }
+
+IF freq is not Integer
+	freq := 25
 
 pmX:=invertedX ? -1:1							; Sign for inverting axis
 pmY:=invertedY ? -1:1
@@ -169,7 +170,6 @@ fr:=0											; Fixed radius.
 ;nnp:=4	 										; Non-linearity parameter for joystick output, 1 = linear, >1 higher sensitivity closer to full tilt, <1 higher sensitivity closer to deadzone. Recommended range, [0.1,6]. 
 ; New parameters
 stickIsAutoHeld:=0								; Tracks the status of autohold stick. 0 means it is not being auto held.
-;fallBackPause:=125								; Short mouse movement block after fall back. Set to zero to disable fallback
 
 segmentEndAngles:=Object()						; Each segment is defined by its angle, segment 1,...,12 -> end angle pi/6,pi/3,...,2*pi [rad]. (Unfortuantley its clockwise, with 0/2pi being at three o'clock)
 Loop,12
@@ -182,7 +182,7 @@ Gui, Controller: +ToolWindow -Caption +AlwaysOnTop +HWNDstick
 Gui, Controller: Color, FFFFFF
 
 ; Spam user with useless info, first time script runs.
-if (firstRun)
+If (firstRun)
 {
 	MsgBox,64,Welcome,Settings are accessed via Tray icon -> Settings.
 	IniWrite,0,settings.ini,General,firstRun
@@ -195,21 +195,21 @@ selectGameMenu:
 	TrayTip, % "Game reset to cemu.exe", % "If you want something different manually edit the settings, or 'settings.ini' file directly",,0x10
 	gameExe := "cemu.exe"
 	IniWrite, %gameExe%, settings.ini, General, gameExe
-return
+Return
 
 reloadMenu:
 	Reload
-return
+Return
 
 aboutMenu:
 	Msgbox,32,About, Modified for CEMU by:`nCemuUser8`n`nVersion:`n%version%
-return
+Return
 
 helpMenu:
-	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nIt is helpful to know the version (%version%)`nand if possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
+	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nIt is helpful to know the version (%version%)`nand If possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
 	IfMsgBox Yes
 		Run, https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/
-return
+Return
 
 
 initCvJoyInterface:
@@ -217,7 +217,7 @@ initCvJoyInterface:
 	; Create an object from vJoy Interface Class.
 	vJoyInterface := new CvJoyInterface()
 	; Was vJoy installed and the DLL Loaded?
-	if (!vJoyInterface.vJoyEnabled()){
+	If (!vJoyInterface.vJoyEnabled()){
 		; Show log of what happened
 		Msgbox,% 4+16,vJoy Error,% "vJoy needs to be installed. Press no to exit application.`nLog:`n" . vJoyInterface.LoadLibraryLog ; Error handling changed.
 		IfMsgBox Yes
@@ -233,26 +233,26 @@ initCvJoyInterface:
 		IF (vJoyInterface.Devices[A_Index].IsAvailable())
 			ValidDevices .= A_Index . "|"
 	}
-	global vstick := vJoyInterface.Devices[vJoyDevice]
-return
+	Global vstick := vJoyInterface.Devices[vJoyDevice]
+Return
 
 ; Hotkey labels
 ; This switches on/off the controller.
 controllerSwitch:
-	if toggle	; Starting controller
+	If toggle	; Starting controller
 	{
-		if autoActivateGame
+		If autoActivateGame
 		{
 			WinActivate,ahk_exe %gameExe%
 			WinWaitActive, ahk_exe %gameExe%,,2
-			if ErrorLevel	
+			If ErrorLevel	
 			{
 				MsgBox,16,Error, %gameExe% not activated.
-				return
+				Return
 			}
 			WinGetPos,gameX,gameY,gameW,gameH,ahk_exe %gameExe%									; Get game screen position and dimensions
 		}
-		else
+		Else
 		{
 			gameX:=0
 			gameY:=0
@@ -261,7 +261,7 @@ controllerSwitch:
 		}
 		DllCall("User32.dll\ReleaseCapture")													; Release mouse capture from game.
 		
-		; Controller origin is center of game screen or screen if autoActivateGame:=0.
+		; Controller origin is center of game screen or screen If autoActivateGame:=0.
 		OX:=gameX+gameW/2				
 		OY:=gameY+gameH/2
 		
@@ -279,22 +279,22 @@ controllerSwitch:
 		WinSet,Transparent,1,ahk_id %stick%														; Make transparent.
 		DllCall("User32.dll\SetCapture", "Uint", stick)											; Let the controller capture the mouse.
 		
-		if hideCursor
+		If hideCursor
 			DllCall("User32.dll\ShowCursor", "Int", 0)
 			
-		if mouse2joystick
+		If mouse2joystick
 			SetTimer,mouseTojoystick,%freq%
 	}
-	else	; Shutting down controller
+	Else	; Shutting down controller
 	{
-		if mouse2joystick
+		If mouse2joystick
 		{
 			SetTimer,mouseTojoystick,Off
 			setStick(0,0)															; Stick in equllibrium.
 			setStick(0,0, True)
 		}			
 		
-		if hideCursor
+		If hideCursor
 			DllCall("User32.dll\ShowCursor", "Int", 1) 							; No need to show cursor if not hidden.
 
 		DllCall("User32.dll\ReleaseCapture")									; This might be unnecessary
@@ -303,16 +303,16 @@ controllerSwitch:
 		
 	}
 	toggle:=!toggle
-return
+Return
 
 autoHoldStick:
 	;
 	;	Sub-routine for enabling user to lock joystick position and use mouse normally.
 	;
-	if !stickIsAutoHeld
+	If !stickIsAutoHeld
 	{
 		; Here the stick is not being auto held and user wants to auto hold it.
-		if hideCursor
+		If hideCursor
 			DllCall("User32.dll\ShowCursor", "Int", 1) 						; Show cursor
 		
 		
@@ -322,14 +322,14 @@ autoHoldStick:
 		
 		MouseGetPos,ahX,ahY													; Save mouse position
 		MouseMove,OX,OY														; Move mouse
-		if mouse2joystick
+		If mouse2joystick
 			SetTimer, mouseTojoystick, Off									; Shut down timer									
 	}
-	else
+	Else
 	{
 
 		; Here the stick is being auto held and user wants to get back control.
-		if hideCursor
+		If hideCursor
 			DllCall("User32.dll\ShowCursor", "Int", 0) 						; Hide cursor again		
 		
 		
@@ -337,17 +337,17 @@ autoHoldStick:
 		DllCall("User32.dll\SetCapture", "Uint", stick)						; Let the controller capture the mouse.
 					
 		MouseMove,ahX,ahY													; Move back mouse.
-		if mouse2joystick
+		If mouse2joystick
 			SetTimer, mouseTojoystick, on									; Turn timer back on.
 	}
 	stickIsAutoHeld:=!stickIsAutoHeld										; Toggle auto hold status
-return
+Return
 
 ; Hotkeys mouse2joystick
-#if (!toggle && mouse2joystick)
-#if
+#If (!toggle && mouse2joystick)
+#If
 mouse2joystickHotkeys:
-	Hotkey, if, (!toggle && mouse2joystick)
+	Hotkey, If, (!toggle && mouse2joystick)
 		SetStick(0,0, True)
 		HotKey,%walkToggleKey%,toggleHalf, On
 		IF (lockZLToggleKey AND lockZL)
@@ -369,61 +369,62 @@ mouse2joystickHotkeys:
 	Loop, Parse, joystickButtonKeyList, `,
 	{
 		keyName:=A_LoopField
-		if !keyName
+		If !keyName
 			continue
 		KeyList[keyName] := A_Index
 		Hotkey,%keyName%, pressJoyButton, on 
 		Hotkey,%keyName% Up, releaseJoyButton, on
 	}
-	if autoHoldStickKey
+	If autoHoldStickKey
 		HotKey, %autoHoldStickKey%, autoHoldStick, On
-	if fixRadiusKey
+	If fixRadiusKey
 		HotKey, %fixRadiusKey%, fixRadius, On
-	Hotkey, if
-return
+	Hotkey, If
+Return
 
 fixRadius:
-	if fr										; Toggle fixed/free.
+	If fr										; Toggle fixed/free.
 	{
 		fr:=0
-		return
+		Return
 	}
 	MouseGetPos,X,Y
 	X-=OX										; Move to controller coord system.
 	Y-=OY
 	fr:=sqrt(X**2+Y**2) 						; Fix radius to current deflection.
-return
+Return
 
 
 ; Labels for pressing and releasing joystick buttons.
 pressJoyButton:
 	keyName:=A_ThisHotkey
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	if (joyButtonNumber = 7 AND lockZL) {
+	If (joyButtonNumber = 7 AND lockZL) {
 		IF (ZLToggle)
 			vstick.SetBtn(0,joyButtonNumber)
 		Else
 			vstick.SetBtn(1,joyButtonNumber)
 	}
-	Else if joyButtonNumber
+	Else If joyButtonNumber
 		vstick.SetBtn(1,joyButtonNumber)
-return
+Return
 
 releaseJoyButton:
 	keyName:=RegExReplace(A_ThisHotkey," Up$")
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	if (joyButtonNumber = 7 AND lockZL) {
+	If (joyButtonNumber = 7 AND lockZL) {
 		IF (ZLToggle)
 			vstick.SetBtn(1,joyButtonNumber)
 		Else
 			vstick.SetBtn(0,joyButtonNumber)
 	}
-	Else if joyButtonNumber
+	Else If joyButtonNumber
 		vstick.SetBtn(0,joyButtonNumber)
-return
+Return
 
 GyroControl:
 	Thread, NoTimers
+	SetStick(0,0)
 	Gui, Controller:Hide
 	ControlClick,, ahk_exe %gameEXE%,, R,,D
 	While (GetKeyState(A_ThisHotkey, "P"))
@@ -559,8 +560,9 @@ Return
 ; Labels
 
 mouseTojoystick:
+	Critical
 	mouse2joystick(r,dr,OX,OY)
-return
+Return
 
 ; Functions
 
@@ -571,19 +573,19 @@ mouse2joystick(r,dr,OX,OY)
 	; OX is the x coord of circle center.
 	; OY is the y coord of circle center.
 	; fr is the fixed radius
-	global actionTaken, fallBackPause, k, nnp, fr, AlreadyDown
+	Global k, nnp, fr, AlreadyDown
 	MouseGetPos,X,Y
 	X-=OX										; Move to controller coord system.
 	Y-=OY
 	RR:=sqrt(X**2+Y**2)
-	if fr										; If fixed radius.
+	If fr										; If fixed radius.
 	{
 		X:=round(X*fr/RR)
 		Y:=round(Y*fr/RR)
 		RR:=sqrt(X**2+Y**2)
 		MouseMove,X+OX,Y+OY 
 	}
-	else if (RR>r)								; Check if outside controller circle.
+	Else If (RR>r)								; Check If outside controller circle.
 	{
 		X:=round(X*(r-dr)/RR)
 		Y:=round(Y*(r-dr)/RR)
@@ -595,24 +597,11 @@ mouse2joystick(r,dr,OX,OY)
 	phi:=getAngle(X,Y)							
 	
 	
-	if (RR>k*r AND !AlreadyDown) 								; Check if outside inner circle/deadzone.
-	{
-		; Call action function.
-		
+	If (RR>k*r AND !AlreadyDown) 								; Check If outside inner circle/deadzone.
 		action(phi,((RR-k*r)/(r-k*r))**nnp)		; nnp is a non-linearity parameter.	
-		actionTaken:=1							; This will enable fall back to center when leaving outer ring.
-	}
-	else
-	{
-		setStick(0,0)							; Stick in equllibrium.
-		if (fallBackPause!=-1 && actionTaken=1)					
-		{
-			MouseMove,OX,OY						; User has moved back to inner circle/deadzone, fall back to center.
+	 Else
+		 setStick(0,0)							; Stick in equllibrium.
 
-			mouseBlock()						; Short mouse movmement block after fallback.
-			actionTaken:=0						; This will enable leaving the inner circle/deadzone again.
-		}
-	}
 	MouseMove,OX,OY
 }
 
@@ -624,34 +613,34 @@ action(phi,tilt)
 	; When this is called it is already established that the deadzone is left, or the inner radius.
 	; pmX/pmY is used for inverting axis.
 	; snapToFullTilt is used to ensure full tilt is possible, this needs to be improved, should be dependent on the sensitivity.
-	global angularDeadZone,pmX,pmY,pi,snapToFullTilt
+	Global angularDeadZone,pmX,pmY,pi,snapToFullTilt
 
 	; Adjust tilt
 	tilt:=tilt>1 ? 1:tilt
-	if (snapToFullTilt!=-1)
+	If (snapToFullTilt!=-1)
 		tilt:=1-tilt<=snapToFullTilt ? 1:tilt
 	
 	; If in angular deadzone, only output to one axis is done, for easy "full tilt" in one direction without any small drift to other direction.
 	; In angular deadzone, the output is "output"
-	if (phi<3*pi/2+angularDeadZone && phi>3*pi/2-angularDeadZone)							; In angular deadzone for Y-axis forward tilt.
+	If (phi<3*pi/2+angularDeadZone && phi>3*pi/2-angularDeadZone)							; In angular deadzone for Y-axis forward tilt.
 	{
 		setStick(0,pmY*tilt)
-		return
+		Return
 	}
-	if (phi<pi+angularDeadZone && phi>pi-angularDeadZone)									; In angular deadzone for X-axis left    tilt.
+	If (phi<pi+angularDeadZone && phi>pi-angularDeadZone)									; In angular deadzone for X-axis left    tilt.
 	{
 		setStick(-pmX*tilt,0)
-		return
+		Return
 	}
-	if (phi<pi/2+angularDeadZone && phi>pi/2-angularDeadZone)								; In angular deadzone for Y-axis down	 tilt.
+	If (phi<pi/2+angularDeadZone && phi>pi/2-angularDeadZone)								; In angular deadzone for Y-axis down	 tilt.
 	{
 		setStick(0,-pmY*tilt)
-		return
+		Return
 	}	
-	if ((phi>2*pi-angularDeadZone && phi<2*pi) || (phi<angularDeadZone && phi>=0) )			; In angular deadzone for Y-axis right	 tilt.
+	If ((phi>2*pi-angularDeadZone && phi<2*pi) || (phi<angularDeadZone && phi>=0) )			; In angular deadzone for Y-axis right	 tilt.
 	{
 		setStick(pmX*tilt,0)
-		return
+		Return
 	}
 	
 	; Not inside angular deadzone. Here leq and geq should be used. There are eight cases.
@@ -660,99 +649,99 @@ action(phi,tilt)
 	; Tilt is forward and slightly right.
 	lb:=3*pi/2+angularDeadZone						; lb is lower bound
 	ub:=7*pi/4										; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=pmX*tilt*scale(phi,ub,lb)
 		y:=pmY*tilt
 		setStick(x,y)
-		return
+		Return
 	}
 	; Tilt is slightly forward and right.
 	lb:=7*pi/4										; lb is lower bound
 	ub:=2*pi-angularDeadZone						; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=pmX*tilt
 		y:=pmY*tilt*scale(phi,lb,ub)
 		setStick(x,y)
-		return
+		Return
 	}
 	
 	; Two cases with right+downward
 	; Tilt is right and slightly downward.
 	lb:=angularDeadZone								; lb is lower bound
 	ub:=pi/4										; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=pmX*tilt
 		y:=-pmY*tilt*scale(phi,ub,lb)
 		setStick(x,y)
-		return
+		Return
 	}
 	; Tilt is downward and slightly right.
 	lb:=pi/4										; lb is lower bound
 	ub:=pi/2-angularDeadZone						; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=pmX*tilt*scale(phi,lb,ub)
 		y:=-pmY*tilt
 		setStick(x,y)
-		return
+		Return
 	}
 	
 	; Two cases with downward+left
 	; Tilt is downward and slightly left.
 	lb:=pi/2+angularDeadZone						; lb is lower bound
 	ub:=3*pi/4										; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=-pmX*tilt*scale(phi,ub,lb)
 		y:=-pmY*tilt
 		setStick(x,y)
-		return
+		Return
 	}
 	; Tilt is left and slightly downward.
 	lb:=3*pi/4										; lb is lower bound
 	ub:=pi-angularDeadZone							; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=-pmX*tilt
 		y:=-pmY*tilt*scale(phi,lb,ub)
 		setStick(x,y)
-		return
+		Return
 	}
 	
 	; Two cases with forward+left
 	; Tilt is left and slightly forward.
 	lb:=pi+angularDeadZone							; lb is lower bound
 	ub:=5*pi/4										; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=-pmX*tilt
 		y:=pmY*tilt*scale(phi,ub,lb)
 		setStick(x,y)
-		return
+		Return
 	}
 	; Tilt is forward and slightly left.
 	lb:=5*pi/4										; lb is lower bound
 	ub:=3*pi/2-angularDeadZone						; ub is upper bound
-	if (phi>=lb && phi<=ub)							
+	If (phi>=lb && phi<=ub)							
 	{
 		x:=-pmX*tilt*scale(phi,lb,ub)
 		y:=pmY*tilt
 		setStick(x,y)
-		return
+		Return
 	}
 	; This should not happen:
 	setStick(0,0)
 	MsgBox,16,Error, Error at phi=%phi%. Please report.
-	return
+	Return
 }
 
 scale(phi,lb,ub)
 {
 	; let phi->f(phi) then, f(ub)=0 and f(lb)=1
-	return (phi-ub)/(lb-ub)
+	Return (phi-ub)/(lb-ub)
 }
 
 setStick(x,y, a := False)
@@ -785,31 +774,23 @@ setStick(x,y, a := False)
 ; Shared functions
 getAngle(x,y)
 {
-	global pi
-	if (x=0)
-		return 3*pi/2-(y>0)*pi
+	Global pi
+	If (x=0)
+		Return 3*pi/2-(y>0)*pi
 	phi:=atan(y/x)
-	if (x<0 && y>0)
-		return phi+pi
-	if (x<0 && y<=0)
-		return phi+pi
-	if (x>0 && y<0)
-		return phi+2*pi
-	return phi
-}
-
-mouseBlock()
-{
-	global fallBackPause	
-	BlockInput, MouseMove
-	Sleep, %fallBackPause%
-	BlockInput, MouseMoveOff
+	If (x<0 && y>0)
+		Return phi+pi
+	If (x<0 && y<=0)
+		Return phi+pi
+	If (x>0 && y<0)
+		Return phi+2*pi
+	Return phi
 }
 
 exitFunc()
 {
-	global
-	if mouse2Joystick
+	Global
+	If mouse2Joystick
 	{
 		setStick(0,0)
 		SetStick(0,0, True)
@@ -824,7 +805,7 @@ exitFunc()
 ; Misc labels and such
 tipOff:
 	Tooltip
-return
+Return
 
 
 ;
@@ -833,8 +814,8 @@ return
 ; This is auto generated.
 ;
 openSettings:
-if !toggle			; This is probably best.
-	return
+If !toggle			; This is probably best.
+	Return
 Gui, Main: Destroy ; Ops
 hideShow=0 
 win_name := "Mouse2Joystick Custom for CEMU Settings  -  " . version
@@ -854,27 +835,27 @@ GuiControl, -Redraw, Main
 Gui, Main: default
 TV_LoadTree(tree)
 GuiControl, +Redraw, Main 
-return	
+Return	
 TreeClick:
 	lastSection:=section
-	if A_GuiEvent = S
+	If A_GuiEvent = S
 		selection:=A_EventInfo
 	section:=selectionPath(selection)		
 	SB_SetText("You are in: " . section,1)	
 	TV_GetText(nodeName,selection)
-	if (IsLabel(lastSection))
+	If (IsLabel(lastSection))
 	{
 		hideShow=0
 		Gosub,%lastSection%	
 	}
 	section:=RegExReplace(section,"[ ]+","_")		
-	if (IsLabel(section))
+	If (IsLabel(section))
 	{
 		hideShow=1
 		Gosub,%section%  	 
 		hideShow=0			 
 	}
-return
+Return
 mainOk:
 	Gui, Main: Submit
 	Gosub, SubmitAll
@@ -884,7 +865,7 @@ mainOk:
 	Hotkey,%exitKey%,exitFunc, off
 		
 	; Joystick buttons
-	Hotkey, if, (!toggle && mouse2joystick)
+	Hotkey, If, (!toggle && mouse2joystick)
 	HotKey,%walkToggleKey%,toggleHalf, Off
 	IF (lockZLToggleKey AND lockZL)
 		HotKey,%lockZLToggleKey%,toggleAimLock, Off
@@ -905,17 +886,17 @@ mainOk:
 	Loop, Parse, joystickButtonKeyList, `,
 	{
 		keyName:=A_LoopField
-		if !keyName
+		If !keyName
 			continue
 		KeyList[keyName] := ""
 		Hotkey,%keyName%, pressJoyButton, off 
 		Hotkey,%keyName% Up, releaseJoyButton, off
 	}
-	if autoHoldStickKey
+	If autoHoldStickKey
 		HotKey, %autoHoldStickKey%, autoHoldStick, off
-	if fixRadiusKey
+	If fixRadiusKey
 		HotKey, %fixRadiusKey%, fixRadius, off
-	Hotkey, if
+	Hotkey, If
 
 	; Read settings.
 	
@@ -931,7 +912,7 @@ mainOk:
 		}
 	}
 
-	if mouse2joystick
+	If mouse2joystick
 	{
 		Gosub, initCvJoyInterface
 		Gosub, mouse2joystickHotkeys
@@ -945,7 +926,7 @@ mainOk:
 	Hotkey,%controllerSwitchKey%,controllerSwitch, on
 	Hotkey,%exitKey%,exitFunc, on
 	
-return
+Return
 guiCode:
 Iniread,editText,settings.ini,General,gameExe
 editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
@@ -973,7 +954,7 @@ Gui, Main: add, Text,Hidden vtext1439415306 X350 Y118,%Text%
 Text= 
 Text=	
 (
-Automatically activate executable  (if it is running)  when controller is switched on.
+Automatically activate executable  (If it is running)  when controller is switched on.
 )
 Gui, Main: add, Text,Hidden vtext1649409801 X285 Y175,%Text%
 Text= 
@@ -988,8 +969,10 @@ Iniread,editText,settings.ini,General>Setup,k
 editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
 Gui, Main: add, Edit,Hidden   vedit1484171716 X185 Y165 r1 w75,%editText%
 editText= 
-Iniread,editText,settings.ini,General>Setup,fallBackPause
+Iniread,editText,settings.ini,General>Setup,freq
 editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
+IF editText is not Integer
+	editText := 25
 Gui, Main: add, Edit,Hidden   vedit1441011004 X185 Y225 r1 w75,%editText%
 editText= 
 Iniread,editText,settings.ini,General>Setup,nnp
@@ -999,7 +982,7 @@ editText=
 Gui, Main: add, GroupBox,Hidden vtext1820027441 X170 Y25 W520 H53,Sensitivity
 Gui, Main: add, GroupBox,Hidden vtext1761503059 X170 Y85 W520 H53,Non linear sensitivity
 Gui, Main: add, GroupBox,Hidden vtext868645638 X170 Y145 W520 H53,Deadzone
-Gui, Main: add, GroupBox,Hidden vtext303295627 X171 Y205 W520 H53,Fallback pause
+Gui, Main: add, GroupBox,Hidden vtext303295627 X171 Y205 W520 H53,Mouse Check Frequency
 Text=	
 (
 1 is linear, <1 lowers sensitivity away from center, >1 hightens sensitivity away center.
@@ -1014,7 +997,7 @@ Gui, Main: add, Text,Hidden vtext1365655690 X270 Y169,%Text%
 Text= 
 Text=	
 (
-ms. Snaps back to center when entering inner ring, and pauses. Set to -1 to disable.
+ms. This should be low, I recommend trying between 9-32 Default:25
 )
 Gui, Main: add, Text,Hidden vtext1314749378 X270 Y227,%Text%
 Text= 
@@ -1206,56 +1189,56 @@ Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio487673732_1 X
 checkMe:= (master_var="0") ? 1:0
 Gui, Main: Add, Radio, Hidden ys Checked%checkMe% vradio487673732_2,  No
 
-return 
+Return 
 SubmitAll:
 submit_General:
 	edit1092695107:=RegExReplace(edit1092695107,"`n","DELIM_|_ITER")				
 	IniWrite,%edit1092695107%, settings.ini, General, gameExe
-		if (radio1244113855_1=1)
+		If (radio1244113855_1=1)
 			IniWrite,1, settings.ini, General, mouse2joystick
-		if (radio1244113855_2=1)
+		If (radio1244113855_2=1)
 			IniWrite,0, settings.ini, General, mouse2joystick
-		if (radio1371042200_1=1)
+		If (radio1371042200_1=1)
 			IniWrite,1, settings.ini, General, autoActivateGame
-		if (radio1371042200_2=1)
+		If (radio1371042200_2=1)
 			IniWrite,0, settings.ini, General, autoActivateGame
 	IniWrite, %vJoyDropDown%, settings.ini, General, vJoyDevice
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_General>Setup:
 	edit968841594:=RegExReplace(edit968841594,"`n","DELIM_|_ITER")				
 	IniWrite,%edit968841594%, settings.ini, General>Setup, r
 	edit1484171716:=RegExReplace(edit1484171716,"`n","DELIM_|_ITER")				
 	IniWrite,%edit1484171716%, settings.ini, General>Setup, k
-	edit1441011004:=RegExReplace(edit1441011004,"`n","DELIM_|_ITER")				
-	IniWrite,%edit1441011004%, settings.ini, General>Setup, fallBackPause
+	edit1441011004:=RegExReplace(edit1441011004,"`n","DELIM_|_ITER")
+	IniWrite,%edit1441011004%, settings.ini, General>Setup, freq
 	edit1136845697:=RegExReplace(edit1136845697,"`n","DELIM_|_ITER")				
 	IniWrite,%edit1136845697%, settings.ini, General>Setup, nnp
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_General>Hotkeys:
 	hotkey26759803:=hotkey26759803_addWinkey ? "#" . hotkey26759803:hotkey26759803
 	IniWrite,%hotkey26759803%, settings.ini, General>Hotkeys, controllerSwitchKey
 	hotkey255211840:=hotkey255211840_addWinkey ? "#" . hotkey255211840:hotkey255211840
 	IniWrite,%hotkey255211840%, settings.ini, General>Hotkeys, exitKey
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_Mouse2Joystick:
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_Mouse2Joystick>Axes:
 	edit446078763:=RegExReplace(edit446078763,"`n","DELIM_|_ITER")				
 	IniWrite,%edit446078763%, settings.ini, Mouse2Joystick>Axes, angularDeadZone
-		if (radio1025876589_1=1)
+		If (radio1025876589_1=1)
 			IniWrite,1, settings.ini, Mouse2Joystick>Axes, invertedX
-		if (radio1025876589_2=1)
+		If (radio1025876589_2=1)
 			IniWrite,0, settings.ini, Mouse2Joystick>Axes, invertedX
-		if (radio122217493_1=1)
+		If (radio122217493_1=1)
 			IniWrite,1, settings.ini, Mouse2Joystick>Axes, invertedY
-		if (radio122217493_2=1)
+		If (radio122217493_2=1)
 			IniWrite,0, settings.ini, Mouse2Joystick>Axes, invertedY
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_Mouse2Joystick>Keys:
 	edit1874406880:=RegExReplace(edit1874406880,"`n","DELIM_|_ITER")				
 	IniWrite,%edit1874406880%, settings.ini, Mouse2Joystick>Keys, joystickButtonKeyList
@@ -1265,11 +1248,11 @@ submit_Mouse2Joystick>Keys:
 	hotkey93298136:=hotkey93298136_addWinkey ? "#" . hotkey93298136:hotkey93298136
 	IniWrite,%hotkey93298136%, settings.ini, Mouse2Joystick>Keys,fixRadiusKey
 	
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_KeyboardMovement:
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_KeyboardMovement>Keys:
 	hotkey1964265821:=RegExReplace(hotkey1964265821,"[!^+]+")
 	hotkey1964265821:=hotkey1964265821_addWinkey ? "#" . hotkey1964265821:hotkey1964265821
@@ -1292,27 +1275,27 @@ submit_KeyboardMovement>Keys:
 	hotkey83004605:=RegExReplace(hotkey83004605,"[!^+]+")
 	hotkey83004605:=hotkey83004605_addWinkey ? "#" . hotkey83004605:hotkey83004605
 	IniWrite,%hotkey83004605%, settings.ini, KeyboardMovement>Keys, gyroToggleKey
-if submitOnlyOne
-	return
+If submitOnlyOne
+	Return
 submit_Visual_aid:
 			writeVal:=(checkbox1135789786=1) ? "1" : "0"
 			IniWrite,%writeVal%, settings.ini, Extra Settings, hideCursor
-		if (radio2102688731_1=1)
+		If (radio2102688731_1=1)
 			IniWrite,1, settings.ini, Extra Settings, BotWmouseWheel
-		if (radio2102688731_2=1)
+		If (radio2102688731_2=1)
 			IniWrite,0, settings.ini, Extra Settings, BotWmouseWheel
-		if (radio2030676791_1=1)
+		If (radio2030676791_1=1)
 			IniWrite,1, settings.ini, Extra Settings, lockZL
-		if (radio2030676791_2=1)
+		If (radio2030676791_2=1)
 			IniWrite,0, settings.ini, Extra Settings, lockZL
 		
-		if (radio487673732_1=1)
+		If (radio487673732_1=1)
 			IniWrite,1, settings.ini, Extra Settings, nnVA
-		if (radio487673732_2=1)
+		If (radio487673732_2=1)
 			IniWrite,0, settings.ini, Extra Settings, nnVA
-if submitOnlyOne
-	return
-return
+If submitOnlyOne
+	Return
+Return
 General:
 GuiControl, Main: Show%hideShow%, edit1092695107
 GuiControl, Main: Enable%hideShow%, edit1092695107
@@ -1333,11 +1316,11 @@ The name of the executable that will recieve the output.
 */
 GuiControl, Main: Show%hideShow%, text1439415306
 /*
-Automatically activate executable  (if it is running)  when controller is switched on.
+Automatically activate executable  (If it is running)  when controller is switched on.
 */
 GuiControl, Main: Show%hideShow%, text1649409801
 GuiControl, Main: Show%hideShow%, vJoyDropDown
-return
+Return
 General>Setup:
 GuiControl, Main: Show%hideShow%, edit968841594
 GuiControl, Main: Enable%hideShow%, edit968841594
@@ -1367,7 +1350,7 @@ GuiControl, Main: Show%hideShow%, text1314749378
 Range, (0,Screen Height/2). Lower values corresponds to higher sensitivity.
 */
 GuiControl, Main: Show%hideShow%, text68851252
-return
+Return
 General>Hotkeys:
 GuiControl, Main: Show%hideShow%, text495210823
 GuiControl, Main: Show%hideShow%, text199783574
@@ -1384,14 +1367,14 @@ GuiControl, Main: Show%hideShow%, hotkey2127896190
 GuiControl, Main: Enable%hideShow%, hotkey2127896190
 GuiControl, Main: Show%hideShow%, hotkey2127896190_addWinkey
 GuiControl, Main: Enable%hideShow%, hotkey2127896190_addWinkey
-return
+Return
 Mouse2Joystick:
 /*
 There is no input verification.
 Follow instructions and don't try to break it.
 */
 GuiControl, Main: Show%hideShow%, text938990667
-return
+Return
 Mouse2Joystick>Axes:
 GuiControl, Main: Show%hideShow%, edit446078763
 GuiControl, Main: Enable%hideShow%, edit446078763
@@ -1410,7 +1393,7 @@ GuiControl, Main: Enable%hideShow%, radio122217493_2
 Range: [0,45]. Defines the area where only one axis is used.
 */
 GuiControl, Main: Show%hideShow%, text374447714
-return
+Return
 Mouse2Joystick>Keys:
 GuiControl, Main: Show%hideShow%, edit1874406880
 GuiControl, Main: Enable%hideShow%, edit1874406880
@@ -1439,14 +1422,14 @@ Fix stick to current position:
 */
 ;GuiControl, Main: Show%hideShow%, text191419274
 ;GuiControl, Main: Show%hideShow%, text19141927
-return
+Return
 KeyboardMovement:
 /*
 There is no input verification.
 Follow instructions and don't try to break it.
 */
 GuiControl, Main: Show%hideShow%, text1220495721
-return
+Return
 KeyboardMovement>Keys:
 GuiControl, Main: Show%hideShow%, text388795812
 GuiControl, Main: Show%hideShow%, text483483623
@@ -1504,7 +1487,7 @@ GuiControl, Main: Show%hideShow%, text863373581
 Gyro Toggle Text
 */
 GuiControl, Main: Show%hideShow%, text863373582
-return
+Return
 Extra_Settings:
 GuiControl, Main: Show%hideShow%, checkbox1135789786
 GuiControl, Main: Enable%hideShow%, checkbox1135789786
@@ -1527,7 +1510,7 @@ GuiControl, Main: Enable%hideShow%, radio2030676791_2
 ;GuiControl, Main: Show%hideShow%, radio487673732_2
 ;GuiControl, Main: Enable%hideShow%, radio487673732_2
 
-return
+Return
 TV_LoadTree(tree)
 {
 	Loop, Parse, tree,`n,`r
@@ -1537,13 +1520,13 @@ TV_LoadTree(tree)
 			head%A_Index%:=A_LoopField
 		break
 	}
-	if !head2
-		return
+	If !head2
+		Return
 	parentID:=TV_Add(head2,,"+expand")
 	load(head4,parentID)
 	parentID:=TV_GetParent(parentID)
 	load(head3,parentID)
-return
+Return
 }
 load(relativeID,parentID)
 {
@@ -1551,26 +1534,26 @@ load(relativeID,parentID)
 	nextChild=
 	nodeName=
 	getNode(nextSibling,nextChild,nodeName,relativeID)
-	if nodeName
+	If nodeName
 		parentID:=TV_Add(nodeName,parentID,"+expand")
-	if nextChild
+	If nextChild
 	{
 		load(nextChild,parentID)
 	}
-	if nextSibling
+	If nextSibling
 	{
 		parentID:=TV_GetParent(parentID)
 		load(nextSibling,parentID)
 	}
-	return
+	Return
 }
 getNode(ByRef sibling, ByRef child, ByRef nodeName, nodeID)
 {
-	global tree
+	Global tree
 	firstLoop:=1
 	Loop, Parse, tree,`n,`r
 	{
-		if firstLoop
+		If firstLoop
 		{
 			firstLoop:=0
 			continue
@@ -1581,7 +1564,7 @@ getNode(ByRef sibling, ByRef child, ByRef nodeName, nodeID)
 			id:=A_LoopField
 			break
 		}
-		if (id=nodeID)
+		If (id=nodeID)
 		{
 			Loop, Parse, node,;
 				node%A_Index%:=A_LoopField
@@ -1591,25 +1574,25 @@ getNode(ByRef sibling, ByRef child, ByRef nodeName, nodeID)
 	nodeName:=node2
 	sibling:=node3
 	child:=node4
-	return
+	Return
 }
 selectionPath(id)
 {
 	TV_GetText(name,id)
-	if !name
-		return 0
+	If !name
+		Return 0
 	parentID := id
 	Loop
 	{
 		parentID := TV_GetParent(parentID)
-		if !parentID
+		If !parentID
 			break
 		parentName=
 		TV_GetText(parentName, parentID)
-		if parentName
+		If parentName
 			name = %parentName%>%name%
 	}
-	return name
+	Return name
 }
 readTreeString:
 tree=
@@ -1624,7 +1607,7 @@ tree=
 39873056;Keys;0;0
 39873152;Extra Settings;0;0
 )
-return
+Return
 
 ; Default settings in case problem reading/writing to file.
 setSettingsToDefault:
@@ -1637,8 +1620,8 @@ firstRun=0
 vJoyDevice=1
 r=40
 k=0.02
-fallBackPause=-1
-nnp=.65
+freq=25
+nnp=.55
 controllerSwitchKey=F1
 exitKey=#q
 angularDeadZone=0
@@ -1665,7 +1648,7 @@ nnVA=1
 		%keyValue1%:=keyValue2
 	}
 	Goto, readSettingsSkippedDueToError
-return
+Return
 
 #IF KeyHelperRunning(setToggle)
 #IF
@@ -1679,7 +1662,7 @@ KeyListByNum := []
 Loop, Parse, getKeyList, `,
 {
 	keyName := A_LoopField
-	if !keyName
+	If !keyName
 		continue
 	KeyListByNum[A_Index] := keyName
 }
