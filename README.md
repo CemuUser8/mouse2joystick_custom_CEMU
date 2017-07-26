@@ -1,3 +1,8 @@
+# Not tested with CEMU > 1.9.0 AT ALL!! as I no longer have access to Patreon builds, please keep this in mind.
+Since 1.9.0 changed input a lot, there may be issues, may not be. I don't even know if importing layouts is the same.
+
+&nbsp;
+
 # mouse2joystick_custom_CEMU
 I've decided to combine my customizations into a single script to be easier to manage.
 
