@@ -72,10 +72,10 @@ autoActivateGame=1
 firstRun=1
 vJoyDevice=1
 [General>Setup]
-r=40
+r=80
 k=0.02
 freq=25
-nnp=.55
+nnp=.28
 [General>Hotkeys]
 controllerSwitchKey=F1
 exitKey=#q
@@ -368,12 +368,16 @@ mouse2joystickHotkeys:
 	KeyList := []
 	Loop, Parse, joystickButtonKeyList, `,
 	{
-		keyName:=A_LoopField
-		If !keyName
-			continue
-		KeyList[keyName] := A_Index
-		Hotkey,%keyName%, pressJoyButton, on 
-		Hotkey,%keyName% Up, releaseJoyButton, on
+		useButton := A_Index
+		Loop, Parse, A_LoopField, |
+		{		
+			keyName:=A_LoopField
+			If !keyName
+				continue
+			KeyList[keyName] := useButton
+			Hotkey,%keyName%, pressJoyButton, on 
+			Hotkey,%keyName% Up, releaseJoyButton, on
+		}
 	}
 	If autoHoldStickKey
 		HotKey, %autoHoldStickKey%, autoHoldStick, On
@@ -749,12 +753,23 @@ setStick(x,y, a := False)
 	; Set joystick x-axis to 100*x % and y-axis to 100*y %
 	; Input is x,y ∈ (-1,1) where 1 would mean full tilt in one direction, and -1 in the other, while zero would mean no tilt at all. Using this interval makes it easy to invert the axis
 	; (mainly this was choosen beacause the author didn't know the correct interval to use in CvJoyInterface)
-	; the input is not really compatible with the CvJoyInterface. Hence this transformation:
+	; the input is not really compatible with the CvJoyInterface. Hence this transformation:	
 	x:=(x+1)*16384									; This maps x,y ∈ (-1,1) -> (0,32768)
 	y:=(y+1)*16384
+
+	IF (!a) {
+		IF (x > 16384 AND x < 20480)
+			x :=  16384 + ((x-16384)*1.16)
+		Else IF (x < 16384 AND x > 12288)
+			x := 16384 - ((16384 - x)*1.16)
+		IF (y > 16384 AND y < 20480)
+			y :=  16384 + ((y-16384)*1.16)
+		Else IF (y < 16384 AND y > 12288)
+			y := 16384 - ((16384 - y)*1.16)
+	}
+	
 	; Use set by index.
 	; x = 1, y = 2.
-	; Alter x
 	IF ( a ) { ;IF (GetKeyState("RButton") OR a ) {
 		axisX := 4
 		axisY := 5
@@ -765,7 +780,6 @@ setStick(x,y, a := False)
 	}
 	IF x is number
 		vstick.SetAxisByIndex(x,axisX)
-	; Alter y
 	IF y is number
 		vstick.SetAxisByIndex(y,axisY)
 }
@@ -885,12 +899,16 @@ mainOk:
 
 	Loop, Parse, joystickButtonKeyList, `,
 	{
-		keyName:=A_LoopField
-		If !keyName
-			continue
-		KeyList[keyName] := ""
-		Hotkey,%keyName%, pressJoyButton, off 
-		Hotkey,%keyName% Up, releaseJoyButton, off
+		useButton := A_Index
+		Loop, Parse, A_LoopField, |
+		{		
+			keyName:=A_LoopField
+			If !keyName
+				continue
+			KeyList[keyName] := useButton
+			Hotkey,%keyName%, pressJoyButton, off
+			Hotkey,%keyName% Up, releaseJoyButton, off
+		}
 	}
 	If autoHoldStickKey
 		HotKey, %autoHoldStickKey%, autoHoldStick, off
@@ -1618,10 +1636,10 @@ mouse2joystick=1
 autoActivateGame=1
 firstRun=0
 vJoyDevice=1
-r=40
+r=80
 k=0.02
 freq=25
-nnp=.55
+nnp=.28
 controllerSwitchKey=F1
 exitKey=#q
 angularDeadZone=0
