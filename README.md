@@ -1,3 +1,10 @@
+# Not tested with CEMU > 1.9.0 AT ALL!! as I no longer have access to Patreon builds, please keep this in mind.
+I've researched and found out that there is a new folder called controllerProfiles in the directory of Cemu.exe now. If you put these text files in you should be able Load the vJoy layouts directly, hopefully it works on machines other than mine.
+
+[Download controller profiles for CEMU > 1.9.0](https://bitbucket.org/CemuUser8/files/downloads/vJoyControllerProfiles.zip)
+
+&nbsp;
+
 # mouse2joystick_custom_CEMU
 I've decided to combine my customizations into a single script to be easier to manage.
 
