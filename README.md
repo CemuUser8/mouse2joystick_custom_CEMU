@@ -16,7 +16,7 @@
 	* Make sure to [choose the device as `vJoy Device` and confirm it says connected](http://i.imgur.com/Zx9pTmK.png)
 		*  *Not sure if necessary* but [Press Calibrate](http://i.imgur.com/3E6UrZX.png)
 
-	* Choose the [appropriate Profile](http://i.imgur.com/sfKWlgu.png) for the type of controller you are setting up.
+	* Choose the [appropriate Profile](http://i.imgur.com/nH7S3U7.png) for the type of controller you are setting up.
 	* [Click Load](http://i.imgur.com/PQFlfr1.png)
 
 The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the important part is that each button be mapped in order as `Button #`
