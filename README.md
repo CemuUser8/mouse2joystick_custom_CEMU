@@ -1,73 +1,139 @@
-# Not tested with CEMU > 1.9.0 AT ALL!! as I no longer have access to Patreon builds, please keep this in mind.
-I've researched and found out that there is a new folder called controllerProfiles in the directory of Cemu.exe now. If you put these text files in you should be able Load the vJoy layouts directly, hopefully it works on machines other than mine.
-
-[Download controller profiles for CEMU > 1.9.0](https://bitbucket.org/CemuUser8/files/downloads/vJoyControllerProfiles.zip)
+# Script last updated on August 8, 2017.
 
 &nbsp;
 
-# mouse2joystick_custom_CEMU
-I've decided to combine my customizations into a single script to be easier to manage.
-
-
-[Original Reddit Post is located here](https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-
-&nbsp;
-
-Copy Pasted from there:
-
-## You still must install [vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download) in order for this to work, however you no longer need to install [AutoHotkey](https://autohotkey.com/download/ahk-install.exe) unless you download the non-compiled version.
 ***
 # Initial Setup
 ***
-* After you install vJoy you must run the [vJoy Configuration](http://i.imgur.com/5YBbtgA.png) and set it up so it has at least 17 Buttons, as you can see I set 32.
+1. Install the latest [vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download) 
+2. Run the [vJoy Configuration](http://i.imgur.com/vvHW0yz.png) 
+	* Set it up so it has **at least 18 Buttons**, I set mine to 32.
+3. 	[Download controller profiles](https://bitbucket.org/CemuUser8/files/downloads/vJoyControllerProfiles.zip)  for CEMU > 1.9.0
+	* Extract these text files into your [CEMU controllerProfiles folder](http://i.imgur.com/goq6zIZ.png)
+4. Then open CEMU and goto the [input settings](http://i.imgur.com/N5Nibtq.png)
+	* Choose the type of controller you want to use, [either 'Wii U Pro Controller' or 'Wii U GamePad'](http://i.imgur.com/sfKWlgu.png)
+	* Choose [DirectInput for the Controller API](http://i.imgur.com/KKCLqs8.png)
+	* Make sure to [choose the device as `vJoy Device` and confirm it says connected](http://i.imgur.com/Zx9pTmK.png)
+		*  *Not sure if necessary* but [Press Calibrate](http://i.imgur.com/3E6UrZX.png)
 
-&nbsp;
+	* Choose the [appropriate Profile](http://i.imgur.com/sfKWlgu.png) for the type of controller you are setting up.
+	* [Click Load](http://i.imgur.com/PQFlfr1.png)
 
-* Then open CEMU and goto the input settings.
-* Choose the type of controller you want to use, either 'Pro' or 'GamePad'.
-* Make sure to choose the device as vJoy.
-* Now you can import the layouts I've included, the 'ccc' files in the zip.  I've exported and included layouts for both GamePad and Pro controller.
-* The input setup should look [like this](http://i.imgur.com/zJlASOK.png), if you chose 'Pro' it should be the same, but there won't be a 'blow mic' button.
-  * Note the device is set to **vJoy NOT Keyboard**.
+The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the important part is that each button be mapped in order as `Button #`
 
-### If it doesn't look like this, you are going to have a problem, and you can try the following to fix the issue at this step:
+### If it doesn't look like this, you are going to have a problem
 
-- [Check this comment](https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/dgnq6lj/) for a guide on how to manually map the keys if you have import issues. Thank you /u/tacochops!
+[Check this comment](https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/dgnq6lj/) for a guide on how to manually map the keys if you have loading issues. Thank you /u/tacochops!
 
-- Also you can try [running this script](https://bitbucket.org/CemuUser8/files/downloads/CEMU_Auto_vJoy_Mapper.zip) I made for auto re-mapping vJoy in the Input settings. It will ask you to open CEMU input settings, then ask you to set the device to vJoy if it isn't already, then let you know the detected type of controller (GamePad or Pro) and then automatically click through and set the buttons to the same as what the 'ccc' file should've imported. I've tested this over and over on my machine and it works, however so does importing the 'ccc' file, so who knows it might not work either.
-**You must close the main script as it interferes with the mapping**
-
-&nbsp;
-
-&nbsp;
+* I believe this still works in 1.9.0, but I've not tested myself
 
 ***
 # Using the Script and changing the key mapping
 ***
-##
-At this point the script should work with the default keys and options I had set. However I recommend you customize the keys and sensitivity settings to your personal preference. 
+1. Visit the [GitHub release page](https://github.com/CemuUser8/mouse2joystick_custom_CEMU/releases) and download the latest release (0.2.0.3 currently)
+2. Launch the script:
+	* Double click the `.ahk` file if you have AutoHotKey installed.
+	* Run the exe if you don't.
+3. IF you don't want to customize anything you are ready to use the Script.
+	* Press `F1` to toggle the controller ( CEMU and Script must be running )
 
-* Press `F1` to toggle activation when running. It should automatically move the mouse and capture it to control the camera, if CEMU isn't running you will probably get an error pop-up. This key can be changed under ['General->Hotkeys'](http://i.imgur.com/DgQfU1n.png)
+**Settings Overview**
 
-&nbsp;
+* Open the script settings by right clicking on the [controller icon in your system tray](http://i.imgur.com/fPBWOsU.png) (Bottom Right) and choose 'settings'
+	* On the [General](http://i.imgur.com/hmMxz21.png) page:
+		* Input Destination
+			* If you changed the name of your cemu executable enter it here
+		* Activate Executable
+			* Choose to have the script automatically activate cemu when controller is toggled on
+		* vJoy Device
+			* Choose which vJoy device to control, if you have more than one set up.
+	* On the [General->Setup](http://i.imgur.com/ROm9GO4.png) page:
+		* Sensitivity
+			* Controls how far the mouse needs to move to tilt the stick
+			* Lower values are more sensitive, I recommend 30-100
+		* Non-Linear Sensitivity
+			* Lower values cause the sensitivity to be raised near the center
+		* Deadzone
+			* Can be set very close to 0, I recommend setting to the smallest possible value where your camera doesn't wander.
+		* Mouse Check Frequency
+			* This is how often the mouse position is checked and reset back to the center.
+	* On the [General->Hotkeys](http://i.imgur.com/fkbmOvP.png) page:
+		* Quit Application
+			* A Master Hotkey to quit out of the script immediately
+		* Toggle the controller on/off
+			* Set the key to choose the Toggle for the controller (Default F1)
+	* On the [Mouse2Joystick->Axes](http://i.imgur.com/EEiTuJM.png) page:
+		* Invert Axis, is self explanatory
+			* Apparently I initally mapped my y-axis as inverted, so 'Yes' here means 'No' (Sorry)
+	*  On the [Mouse2Joystick->Keys](http://i.imgur.com/eMMnEGj.png) page:
+		*  This is the Most important page as it is where you change your assigned keys
+			*  **Will be covered in more detail below**
+	*  On the [KeyboardMovement->Keys](http://i.imgur.com/okKlFwE.png) page:
+		*  Keyboard Movement
+			*  Set your movement keys here.
+		*  Extra Keyboard Keys
+			*  Set your Toggle Walk, ZL Lock, Gyro keys here
+	* On the [Extra Settings](http://i.imgur.com/FvFEeVQ.png) page:
+		* Enable BotW MouseWheel Weapon Change Feature
+			* Choose yes if you would like to be able to use the mouse wheel to change weapons in BotW
+				* Should be off for all other games obviously
+		* Enable ZL Lock Key Feature
+			* Also for BotW, will allow you use a separate key to toggle ZL On, until pressed again.
+				* Pressing the regularily assigned ZL key will always toggle from current state
+		* Cursor
+			* Choose if you would like cursor hidden
+				* Sometimes useful for troubleshooting to make it visible again.
 
-* You open the script settings by right clicking on the [controller icon in your system tray](http://i.imgur.com/gYsabLx.png) (Bottom Right) and choosing 'settings'
+**Mapping your keys**
 
-&nbsp;
+* Goto the [Mouse2Joystick->Keys](http://i.imgur.com/eMMnEGj.png) page:
+	* You can set the [KeyList](http://i.imgur.com/JSJ1KsH.png) here 
+		* This is a comma separated list of [AHK valid keys](https://autohotkey.com/docs/KeyList.htm) in order of vJoy Buttons
+			* The first key is mapped to `Button 0` and so on.
+		* Manually setting the list has an advantage in that you can add more than one key to the same button (New as of 0.2.0.3)
+			* This is accomplished by adding the keys together using the `|` symbol.
+				* i.e. you'll notice `Xbutton1|e,` is what I have set for `A` -- allowing `Mouse4` and `e` to both work.
+		* I recommend setting up the keys with the Helper as below, then adding in any desired secondary keys manually.
+	* [KeyList Helper](http://i.imgur.com/VF2vwfE.png)
+		* This is an [interface that closely matches CEMU input layout](http://i.imgur.com/ewQL8ff.png), which will make it easy to create your KeyList.
+		* You just need to click each box and then press the key you would like to use
+			* Can be mouse buttons
+		* AutoCycle will go through each key one by one allowing you to quickly set the keys
+		* When you click save you will see the KeyList string update itself with any changes you've made.
+			* If you'd like to add secondary keys now is a great time to do it.
 
-* To change your movement keys open script settings, and set the Keys under ['KeyboardMovement->Keys'](http://i.imgur.com/4NMjrRA.png), this is also where the toggle to walk key is set.
+Note: you can still keep KeyList strings for different games saved to a text file locally, and just paste it in (like it used to have to be done)
 
-&nbsp;
 
-You can change your key mappings by following these instructions:
+## Notes for 1.9.0c
+* There is some built-in Deadzone in CEMU that even when set 0 is still present (around 10% it seems)
+	* This causes the camera movement to be jerky, and precise aiming is a giant pain
+* The Deadzone sliders are reversed under the sticks, meaning the left slider affects the camera instead of the right one
+	* This is un-intuitive and a bug most likely.
 
-* You goto the KeyList page and press the KeyList Helper Button located on [Mouse2JoyStick>Keys page](http://i.imgur.com/JyzT21Q.png)
-* You will then see an updated version of [this screen come up,](http://i.imgur.com/hdavP22.png) I've done my best to make it look like CEMU's Input settings so it should look familiar.
-	* [Example of Manually Clicking Through](https://gfycat.com/ArtisticDelayedDwarfrabbit)
-	* [Example of Auto Cycling Through](https://gfycat.com/FinishedUglyHummingbird)
-* When you click save you will see the KeyList string update itself with any changes you've made.
+Currently the best settings I've found to *HELP* alleviate the issue is as [pictured here.](http://i.imgur.com/9DnHmW6.png)
 
-That's it, when you click OK on the main settings screen, your keys are now mapped how you have set.
+Hopefully in 1.9.1 this will be resolved, and I will keep this section of the guide updated until it is.
 
-* Note you can still keep KeyList strings for different games saved to a text file locally and just paste it in (like it used to have to be done)
-	* I may even consider keeping an array of game layouts internally (No promises though)
+***
+# Script Downloads
+***
+**[GitHub Releases](https://github.com/CemuUser8/mouse2joystick_custom_CEMU/releases) will be the best place to find the latest version of the script** 
+
+
+**[Alternate Direct Download](https://bitbucket.org/CemuUser8/files/downloads/mouse2joystick_Custom_CEMU.zip)**
+
+***
+# Extra Reminders
+***
+
+* **Changing your keys within CEMU isn't recommended as it is tedious and finicky. The script allows you to easily change which key is assigned to which vJoy button. Then the button assignment in CEMU doesn't matter at all as long as each key has something.**
+
+
+
+* **Note that the in-game camera settings affect the camera speed the most, so try changing there if camera speed is your only issue.**
+
+* **If you run CEMU as an admin, then you need to run the script as an admin as well.**
+
+***
+***Please feel free to comment here for help, or send me a PM.***
