@@ -72,10 +72,10 @@ autoActivateGame=1
 firstRun=1
 vJoyDevice=1
 [General>Setup]
-r=80
+r=40
 k=0.02
 freq=25
-nnp=.28
+nnp=.55
 [General>Hotkeys]
 controllerSwitchKey=F1
 exitKey=#q
@@ -757,16 +757,16 @@ setStick(x,y, a := False)
 	x:=(x+1)*16384									; This maps x,y ∈ (-1,1) -> (0,32768)
 	y:=(y+1)*16384
 
-	IF (!a) {
-		IF (x > 16384 AND x < 20480)
-			x :=  16384 + ((x-16384)*1.16)
-		Else IF (x < 16384 AND x > 12288)
-			x := 16384 - ((16384 - x)*1.16)
-		IF (y > 16384 AND y < 20480)
-			y :=  16384 + ((y-16384)*1.16)
-		Else IF (y < 16384 AND y > 12288)
-			y := 16384 - ((16384 - y)*1.16)
-	}
+	; IF (!a) { ; Was alternate attempt to solution 1.9.0 introduced, but I don't like having to hard code special solutions.
+		; IF (x > 16384 AND x < 20480)
+			; x :=  16384 + ((x-16384)*1.16)
+		; Else IF (x < 16384 AND x > 12288)
+			; x := 16384 - ((16384 - x)*1.16)
+		; IF (y > 16384 AND y < 20480)
+			; y :=  16384 + ((y-16384)*1.16)
+		; Else IF (y < 16384 AND y > 12288)
+			; y := 16384 - ((16384 - y)*1.16)
+	; }
 	
 	; Use set by index.
 	; x = 1, y = 2.
@@ -1636,10 +1636,10 @@ mouse2joystick=1
 autoActivateGame=1
 firstRun=0
 vJoyDevice=1
-r=80
+r=40
 k=0.02
 freq=25
-nnp=.28
+nnp=.55
 controllerSwitchKey=F1
 exitKey=#q
 angularDeadZone=0
@@ -1725,6 +1725,8 @@ GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[16]
 GUI, Add, Text, w0 xs R1 Right, Dummy
 GUI, Add, Text, w60 xs R1 Right, blow-mic
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[17]
+GUI, Add, Text, w60 xs R1 Right, show-screen
+GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[18]
 GUI, Add, Text, w0 xm+230 R1 Right, Dummy
 GUI, Add, Button, xp yp-30 w80 gSaveButton Section, Save
 GUI, Add, Button, x+m w80 gCancelButton, Cancel
@@ -1737,7 +1739,7 @@ Return
 
 ClearButton:
 	GUI, KeyHelper:Default
-	Loop 17
+	Loop 18
 		GUIControl,,Edit%A_Index%,
 Return
 
@@ -1754,7 +1756,7 @@ Return
 
 SaveButton:
 	tempList := ""
-	Loop 17
+	Loop 18
 	{
 	GUIControlGet, tempKey,,Edit%A_Index%
 		tempList .= tempKey . ","
@@ -1785,7 +1787,7 @@ AutoLoop:
 	Loop 4
 		GUIControl, +Disabled, Button%A_Index%
 	setToggle := True
-	Loop 17 {
+	Loop 18 {
 		useControl := "Edit" . A_Index
 		GetKey()
 	}
