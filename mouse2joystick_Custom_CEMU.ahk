@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.2.0.3"
+version := "v0.2.0.4"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -357,6 +357,7 @@ mouse2joystickHotkeys:
 			Hotkey,WheelDown, overwriteWheelDown, on
 		}
 		HotKey,%gyroToggleKey%, GyroControl, on
+		HotKey,%gyroToggleKey% Up, GyroControlOff, on
 		Hotkey,%upKey%, overwriteUp, on 
 		Hotkey,%upKey% Up, overwriteUpup, on
 		Hotkey,%leftKey%, overwriteLeft, on 
@@ -427,14 +428,27 @@ releaseJoyButton:
 Return
 
 GyroControl:
-	Thread, NoTimers
+	SetTimer, mouseTojoystick, Off
+	IF (BotWmouseWheel) {
+		Hotkey, If, (!toggle && mouse2joystick)
+		Hotkey,WheelUp, overwriteWheelUp, off
+		Hotkey,WheelDown, overwriteWheelDown, off
+	}
 	SetStick(0,0)
 	Gui, Controller:Hide
 	ControlClick,, ahk_exe %gameEXE%,, R,,D
-	While (GetKeyState(A_ThisHotkey, "P"))
-		Continue
+
+Return
+
+GyroControlOff:
 	ControlClick,, ahk_exe %gameEXE%,, R,,U
+	IF (BotWmouseWheel) {
+		Hotkey, If, (!toggle && mouse2joystick)
+		Hotkey,WheelUp, overwriteWheelUp, on
+		Hotkey,WheelDown, overwriteWheelDown, on
+	}
 	Gui, Controller:Show, NA
+	SetTimer, mouseTojoystick, On
 Return
 
 
@@ -888,6 +902,7 @@ mainOk:
 		Hotkey,WheelDown, overwriteWheelDown, off
 	}
 	HotKey,%gyroToggleKey%, GyroControl, off
+	HotKey,%gyroToggleKey% Up, GyroControlOff, off
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
@@ -1824,7 +1839,7 @@ GetKey() {
 		
 	GuiControl, Text, %useControl%, %singleKey%
 	GUIControl, +E0x200, %useControl%
-	Loop 17
+	Loop 18
 	{
 		GUIControlGet, tempKey,,Edit%A_Index%
 		IF (tempKey = singleKey AND useControl != "Edit" . A_Index)
