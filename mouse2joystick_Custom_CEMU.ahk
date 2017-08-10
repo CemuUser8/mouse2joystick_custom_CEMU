@@ -356,8 +356,10 @@ mouse2joystickHotkeys:
 			Hotkey,WheelUp, overwriteWheelUp, on
 			Hotkey,WheelDown, overwriteWheelDown, on
 		}
-		HotKey,%gyroToggleKey%, GyroControl, on
-		HotKey,%gyroToggleKey% Up, GyroControlOff, on
+		IF (gyroToggleKey) {
+			HotKey,%gyroToggleKey%, GyroControl, on
+			HotKey,%gyroToggleKey% Up, GyroControlOff, on
+		}
 		Hotkey,%upKey%, overwriteUp, on 
 		Hotkey,%upKey% Up, overwriteUpup, on
 		Hotkey,%leftKey%, overwriteLeft, on 
@@ -901,8 +903,10 @@ mainOk:
 		Hotkey,WheelUp, overwriteWheelUp, off
 		Hotkey,WheelDown, overwriteWheelDown, off
 	}
-	HotKey,%gyroToggleKey%, GyroControl, off
-	HotKey,%gyroToggleKey% Up, GyroControlOff, off
+	IF (gyroToggleKey) {
+		HotKey,%gyroToggleKey%, GyroControl, off
+		HotKey,%gyroToggleKey% Up, GyroControlOff, off
+	}
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
