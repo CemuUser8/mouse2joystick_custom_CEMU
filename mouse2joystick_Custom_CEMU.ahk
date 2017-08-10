@@ -59,6 +59,7 @@ Menu,Tray,Add,Help,helpMenu
 Menu,Tray,Add
 Menu,Tray,Add,Reload,reloadMenu
 Menu,Tray,Add,Exit,exitFunc
+Menu,Tray,Default, Settings
 
 ; If no settings file, create, When changing this, remember to make corresponding changes after the setSettingsToDefault label (error handling) ; Currently at bottom of script
 IfNotExist, settings.ini
@@ -349,7 +350,8 @@ Return
 mouse2joystickHotkeys:
 	Hotkey, If, (!toggle && mouse2joystick)
 		SetStick(0,0, True)
-		HotKey,%walkToggleKey%,toggleHalf, On
+		IF (walkToggleKey)
+			HotKey,%walkToggleKey%,toggleHalf, On
 		IF (lockZLToggleKey AND lockZL)
 			HotKey,%lockZLToggleKey%,toggleAimLock, On
 		IF (BotWmouseWheel) {
@@ -897,16 +899,12 @@ mainOk:
 	; Joystick buttons
 	Hotkey, If, (!toggle && mouse2joystick)
 	HotKey,%walkToggleKey%,toggleHalf, Off
-	IF (lockZLToggleKey AND lockZL)
-		HotKey,%lockZLToggleKey%,toggleAimLock, Off
-	IF (BotWmouseWheel) {
-		Hotkey,WheelUp, overwriteWheelUp, off
-		Hotkey,WheelDown, overwriteWheelDown, off
-	}
-	IF (gyroToggleKey) {
-		HotKey,%gyroToggleKey%, GyroControl, off
-		HotKey,%gyroToggleKey% Up, GyroControlOff, off
-	}
+	HotKey,%lockZLToggleKey%,toggleAimLock, Off
+	Hotkey,WheelUp, overwriteWheelUp, off
+	Hotkey,WheelDown, overwriteWheelDown, off
+	HotKey,%gyroToggleKey%, GyroControl, off
+	HotKey,%gyroToggleKey% Up, GyroControlOff, off
+
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
@@ -1255,8 +1253,12 @@ If submitOnlyOne
 	Return
 submit_General>Hotkeys:
 	hotkey26759803:=hotkey26759803_addWinkey ? "#" . hotkey26759803:hotkey26759803
+	IF (!hotkey26759803)
+		hotkey26759803 := "F1"
 	IniWrite,%hotkey26759803%, settings.ini, General>Hotkeys, controllerSwitchKey
 	hotkey255211840:=hotkey255211840_addWinkey ? "#" . hotkey255211840:hotkey255211840
+	IF (!hotkey255211840 or hotkey255211840 = "#")
+		hotkey255211840 := "#q"
 	IniWrite,%hotkey255211840%, settings.ini, General>Hotkeys, exitKey
 If submitOnlyOne
 	Return
@@ -1293,15 +1295,23 @@ If submitOnlyOne
 submit_KeyboardMovement>Keys:
 	hotkey1964265821:=RegExReplace(hotkey1964265821,"[!^+]+")
 	hotkey1964265821:=hotkey1964265821_addWinkey ? "#" . hotkey1964265821:hotkey1964265821
+	IF (!hotkey1964265821)
+		hotkey1964265821 := "w"
 	IniWrite,%hotkey1964265821%, settings.ini, KeyboardMovement>Keys, upKey
 	hotkey599253628:=RegExReplace(hotkey599253628,"[!^+]+")
 	hotkey599253628:=hotkey599253628_addWinkey ? "#" . hotkey599253628:hotkey599253628
+	IF (!hotkey599253628)
+		hotkey599253628 := "s"
 	IniWrite,%hotkey599253628%, settings.ini, KeyboardMovement>Keys, downKey
 	hotkey1278963789:=RegExReplace(hotkey1278963789,"[!^+]+")
 	hotkey1278963789:=hotkey1278963789_addWinkey ? "#" . hotkey1278963789:hotkey1278963789
+	IF (!hotkey1278963789)
+		hotkey1278963789 := "a"
 	IniWrite,%hotkey1278963789%, settings.ini, KeyboardMovement>Keys, leftKey
 	hotkey2130103637:=RegExReplace(hotkey2130103637,"[!^+]+")
 	hotkey2130103637:=hotkey2130103637_addWinkey ? "#" . hotkey2130103637:hotkey2130103637
+	IF (!hotkey2130103637)
+		hotkey2130103637 := "d"
 	IniWrite,%hotkey2130103637%, settings.ini, KeyboardMovement>Keys, rightKey
 	hotkey225514912:=RegExReplace(hotkey225514912,"[!^+]+")
 	hotkey225514912:=hotkey225514912_addWinkey ? "#" . hotkey225514912:hotkey225514912
