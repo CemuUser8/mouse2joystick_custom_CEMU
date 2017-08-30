@@ -105,7 +105,7 @@ The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the imp
 Note: you can still keep KeyList strings for different games saved to a text file locally, and just paste it in (like it used to have to be done)
 
 
-## Notes for 1.9.0c
+## Notes for 1.9.1
 * There is some built-in Deadzone in CEMU that even when set 0 is still present (around 10% it seems)
 	* This causes the camera movement to be jerky, and precise aiming is a giant pain
 * The Deadzone sliders are reversed under the sticks, meaning the left slider affects the camera instead of the right one
@@ -113,7 +113,7 @@ Note: you can still keep KeyList strings for different games saved to a text fil
 
 Currently the best settings I've found to *HELP* alleviate the issue is as [pictured here.](http://i.imgur.com/9DnHmW6.png)
 
-Hopefully in 1.9.1 this will be resolved, and I will keep this section of the guide updated until it is.
+Hopefully in 1.9.2 this will be resolved, and I will keep this section of the guide updated until it is.
 
 ***
 # Script Downloads
