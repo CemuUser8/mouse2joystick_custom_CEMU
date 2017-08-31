@@ -232,16 +232,18 @@ Class CvJoyInterface {
 		if (A_PtrSize == 8){
 			; 64-Bit AHK
 			DllKey := "DllX64Location"
+			SecondFolder := vJoyFolder . "x64"
 		} else {
 			; 32-Bit AHK
 			DllKey := "DllX86Location"
+			SecondFolder := vJoyFolder . "x86"
 		}
 		RegRead DllFolder, HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{8E31F76F-74C3-47F1-9550-E041EEDC5FBB}_is1, % DllKey
 
 		if (!DllFolder){
 			; Could not find registry entry. Advise vJoy update.
 			this.LoadLibraryLog .= "A vJoy install was found in " vJoyFolder ", but it appears to be an old version.`nPlease update vJoy to the latest version from `n`nhttp://vjoystick.sourceforge.net."
-			return 0
+			DllFolder := SecondFolder
 		}
 
 		DllFolder .= "\"
