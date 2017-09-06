@@ -37,6 +37,9 @@ SetMouseDelay,-1
 SetBatchLines,-1
 ; On exit
 OnExit("exitFunc")
+SystemCursor("I")
+OrigMouseSpeed := ""
+DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
 toggle:=1													; On/off parameter for the hotkey.	Toggle 0 means controller is on. The placement of this variable is disturbing.
 ; Icon
 Menu,Tray,Tip, mouse2joystick Customized for CEMU
@@ -277,11 +280,13 @@ controllerSwitch:
 		; The mouse blocker
 		Gui, Controller: Show,NA x%gameX% y%gameY% w%gameW% h%gameH%,Controller
 		Gui, Controller:+LastFound
-		WinSet,Transparent,1,ahk_id %stick%														; Make transparent.
+		WinSet,Transparent,0,ahk_id %stick%										; Make transparent.
+		WinSet, ExStyle, +0x00000020,ahk_id %stick%				
 		DllCall("User32.dll\SetCapture", "Uint", stick)											; Let the controller capture the mouse.
 		
 		If hideCursor
-			DllCall("User32.dll\ShowCursor", "Int", 0)
+			SystemCursor("Off") ; DllCall("User32.dll\ShowCursor", "Int", 0)
+		DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
 			
 		If mouse2joystick
 			SetTimer,mouseTojoystick,%freq%
@@ -296,7 +301,8 @@ controllerSwitch:
 		}			
 		
 		If hideCursor
-			DllCall("User32.dll\ShowCursor", "Int", 1) 							; No need to show cursor if not hidden.
+			SystemCursor("On") ; DllCall("User32.dll\ShowCursor", "Int", 1) 							; No need to show cursor if not hidden.
+		DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 
 		DllCall("User32.dll\ReleaseCapture")									; This might be unnecessary
 		stickIsAutoHeld:=0 														; Ensure stick is not being held
@@ -314,7 +320,7 @@ autoHoldStick:
 	{
 		; Here the stick is not being auto held and user wants to auto hold it.
 		If hideCursor
-			DllCall("User32.dll\ShowCursor", "Int", 1) 						; Show cursor
+			SystemCursor("On") ; DllCall("User32.dll\ShowCursor", "Int", 1) 						; Show cursor
 		
 		
 		
@@ -331,7 +337,7 @@ autoHoldStick:
 
 		; Here the stick is being auto held and user wants to get back control.
 		If hideCursor
-			DllCall("User32.dll\ShowCursor", "Int", 0) 						; Hide cursor again		
+			SystemCursor("Off") ; DllCall("User32.dll\ShowCursor", "Int", 0) 						; Hide cursor again		
 		
 		
 		WinShow, ahk_id %stick%
@@ -408,11 +414,15 @@ Return
 pressJoyButton:
 	keyName:=A_ThisHotkey
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	If (joyButtonNumber = 7 AND lockZL) {
+	IF (joyButtonNumber = 7 AND lockZL) {
 		IF (ZLToggle)
 			vstick.SetBtn(0,joyButtonNumber)
 		Else
 			vstick.SetBtn(1,joyButtonNumber)
+	}
+	Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
+		GoSub, GyroControl
+		vstick.SetBtn(1,joyButtonNumber)
 	}
 	Else If joyButtonNumber
 		vstick.SetBtn(1,joyButtonNumber)
@@ -427,31 +437,36 @@ releaseJoyButton:
 		Else
 			vstick.SetBtn(0,joyButtonNumber)
 	}
+	Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
+		vstick.SetBtn(0,joyButtonNumber)
+		GoSub, GyroControlOff
+	}
 	Else If joyButtonNumber
 		vstick.SetBtn(0,joyButtonNumber)
 Return
 
 GyroControl:
 	SetTimer, mouseTojoystick, Off
+	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0)
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
 		Hotkey,WheelUp, overwriteWheelUp, off
 		Hotkey,WheelDown, overwriteWheelDown, off
 	}
 	SetStick(0,0)
-	Gui, Controller:Hide
-	ControlClick,, ahk_exe %gameEXE%,, R,,D
-
+	Click, Right, Down
+	LockMouseToWindow("ahk_id " . stick)
 Return
 
 GyroControlOff:
-	ControlClick,, ahk_exe %gameEXE%,, R,,U
+	Click, Right, Up
+	LockMouseToWindow()
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
 		Hotkey,WheelUp, overwriteWheelUp, on
 		Hotkey,WheelDown, overwriteWheelDown, on
 	}
-	Gui, Controller:Show, NA
+	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	SetTimer, mouseTojoystick, On
 Return
 
@@ -830,7 +845,8 @@ exitFunc()
 	}
 	
 	BlockInput, MouseMoveOff
-	DllCall("User32.dll\ShowCursor", "Int", 1)
+	SystemCursor("On") ; DllCall("User32.dll\ShowCursor", "Int", 1)
+	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	ExitApp
 }
 
@@ -1913,3 +1929,54 @@ OnMessage(0x0207, "")
 OnMessage(0x020B, "")
 Return
 
+SystemCursor(OnOff=0)   ; INIT = "I","Init"; OFF = 0,"Off"; TOGGLE = -1,"T","Toggle"; ON = others
+{
+    static AndMask, XorMask, $, h_cursor
+        ,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13 ; system cursors
+        , b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13   ; blank cursors
+        , h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13   ; handles of default cursors
+    if (OnOff = "Init" or OnOff = "I" or $ = "")       ; init when requested or at first call
+    {
+        $ = h                                          ; active default cursors
+        VarSetCapacity( h_cursor,4444, 1 )
+        VarSetCapacity( AndMask, 32*4, 0xFF )
+        VarSetCapacity( XorMask, 32*4, 0 )
+        system_cursors = 32512,32513,32514,32515,32516,32642,32643,32644,32645,32646,32648,32649,32650
+        StringSplit c, system_cursors, `,
+        Loop %c0%
+        {
+            h_cursor   := DllCall( "LoadCursor", "uint",0, "uint",c%A_Index% )
+            h%A_Index% := DllCall( "CopyImage",  "uint",h_cursor, "uint",2, "int",0, "int",0, "uint",0 )
+            b%A_Index% := DllCall("CreateCursor","uint",0, "int",0, "int",0
+                , "int",32, "int",32, "uint",&AndMask, "uint",&XorMask )
+        }
+    }
+    if (OnOff = 0 or OnOff = "Off" or $ = "h" and (OnOff < 0 or OnOff = "Toggle" or OnOff = "T"))
+        $ = b  ; use blank cursors
+    else
+        $ = h  ; use the saved cursors
+
+    Loop %c0%
+    {
+        h_cursor := DllCall( "CopyImage", "uint",%$%%A_Index%, "uint",2, "int",0, "int",0, "uint",0 )
+        DllCall( "SetSystemCursor", "uint",h_cursor, "uint",c%A_Index% )
+    }
+}
+
+LockMouseToWindow(llwindowname="")
+{
+  VarSetCapacity(llrectA, 16)
+  WinGetPos, llX, llY, llWidth, llHeight, %llwindowname%
+  If (!llWidth AND !llHeight) {
+    DllCall("ClipCursor")
+    Return, False
+  }
+  Loop, 4 { 
+    DllCall("RtlFillMemory", UInt,&llrectA+0+A_Index-1, UInt,1, UChar,llX+10 >> 8*A_Index-8) 
+    DllCall("RtlFillMemory", UInt,&llrectA+4+A_Index-1, UInt,1, UChar,llY+54 >> 8*A_Index-8) 
+    DllCall("RtlFillMemory", UInt,&llrectA+8+A_Index-1, UInt,1, UChar,(llWidth-10 + llX)>> 8*A_Index-8) 
+    DllCall("RtlFillMemory", UInt,&llrectA+12+A_Index-1, UInt,1, UChar,(llHeight-10 + llY) >> 8*A_Index-8) 
+  } 
+  DllCall("ClipCursor", "UInt", &llrectA)
+Return, True
+}
