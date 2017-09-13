@@ -150,8 +150,10 @@ KeyListByNum := []
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
 ; Hotkey(s).
-Hotkey,%controllerSwitchKey%,controllerSwitch, on
-Hotkey,%exitKey%,exitFunc, on
+IF (controllerSwitchKey)
+	Hotkey,%controllerSwitchKey%,controllerSwitch, on
+IF (exitKey)
+	Hotkey,%exitKey%,exitFunc, on
 
 mouse2joystick := True
 If mouse2joystick
@@ -290,9 +292,9 @@ Return
 
 ; Hotkeys mouse2joystick
 #IF (!toggle && mouse2joystick)
-#If
+#IF
 mouse2joystickHotkeys:
-	Hotkey, If, (!toggle && mouse2joystick)
+	Hotkey, IF, (!toggle && mouse2joystick)
 		SetStick(0,0, True)
 		IF (walkToggleKey)
 			HotKey,%walkToggleKey%,toggleHalf, On
@@ -321,14 +323,14 @@ mouse2joystickHotkeys:
 		Loop, Parse, A_LoopField, |
 		{		
 			keyName:=A_LoopField
-			If !keyName
-				continue
+			IF (!keyName)
+				Continue
 			KeyList[keyName] := useButton
 			Hotkey,%keyName%, pressJoyButton, on 
 			Hotkey,%keyName% Up, releaseJoyButton, on
 		}
 	}
-	Hotkey, If
+	Hotkey, IF
 Return
 
 
@@ -813,18 +815,25 @@ mainOk:
 	Gosub, SubmitAll
 	; Get old hotkeys.
 	; Disable old hotkeys
-	Hotkey,%controllerSwitchKey%,controllerSwitch, off
-	Hotkey,%exitKey%,exitFunc, off
+	IF (controllerSwitchKey)
+		Hotkey,%controllerSwitchKey%,controllerSwitch, off
+	IF (exitKey)
+		Hotkey,%exitKey%,exitFunc, off
 		
 	; Joystick buttons
 	Hotkey, If, (!toggle && mouse2joystick)
-	HotKey,%walkToggleKey%,toggleHalf, Off
-	HotKey,%lockZLToggleKey%,toggleAimLock, Off
-	Hotkey,WheelUp, overwriteWheelUp, off
-	Hotkey,WheelDown, overwriteWheelDown, off
-	HotKey,%gyroToggleKey%, GyroControl, off
-	HotKey,%gyroToggleKey% Up, GyroControlOff, off
-
+	IF (walkToggleKey)
+		HotKey,%walkToggleKey%,toggleHalf, Off
+	IF (lockZLToggleKey AND lockZL)
+		HotKey,%lockZLToggleKey%,toggleAimLock, Off
+	IF (BotWmouseWheel) {
+		Hotkey,WheelUp, overwriteWheelUp, off
+		Hotkey,WheelDown, overwriteWheelDown, off
+	}
+	IF (gyroToggleKey) {
+		HotKey,%gyroToggleKey%, GyroControl, off
+		HotKey,%gyroToggleKey% Up, GyroControlOff, off
+	}
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
@@ -840,8 +849,8 @@ mainOk:
 		Loop, Parse, A_LoopField, |
 		{		
 			keyName:=A_LoopField
-			If !keyName
-				continue
+			IF (!keyName)
+				Continue
 			KeyList[keyName] := useButton
 			Hotkey,%keyName%, pressJoyButton, off
 			Hotkey,%keyName% Up, releaseJoyButton, off
@@ -873,8 +882,10 @@ mainOk:
 	angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
 
 	; Enable new hotkeys
-	Hotkey,%controllerSwitchKey%,controllerSwitch, on
-	Hotkey,%exitKey%,exitFunc, on
+	IF (controllerSwitchKey)
+		Hotkey,%controllerSwitchKey%,controllerSwitch, on
+	IF (exitKey)
+		Hotkey,%exitKey%,exitFunc, on
 	
 Return
 guiCode:
