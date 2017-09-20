@@ -379,7 +379,11 @@ pressJoyButton:
 		}
 		Else IF (joyButtonNumber = 8)
 			vstick.SetAxisByIndex(100,3)
-		Else IF (joyButtonNumber >= 9 AND joyButtonNumber <= 12)
+		Else IF (joyButtonNumber = 9)
+			vstick.SetBtn(1,joyButtonNumber-1)
+		Else IF (joyButtonNumber = 10)
+			vstick.SetBtn(1,joyButtonNumber-3)
+		Else IF (joyButtonNumber = 11 AND joyButtonNumber = 12)
 			vstick.SetBtn(1,joyButtonNumber-2)
 		Else IF (joyButtonNumber = 13)
 			vstick.SetPOV(0)
@@ -420,7 +424,11 @@ releaseJoyButton:
 		}
 		Else IF (joyButtonNumber = 8)
 			vstick.SetAxisByIndex(0,3)
-		Else IF (joyButtonNumber >= 9 AND joyButtonNumber <= 12)
+		Else IF (joyButtonNumber = 9)
+			vstick.SetBtn(0,joyButtonNumber-1)
+		Else IF (joyButtonNumber = 10)
+			vstick.SetBtn(0,joyButtonNumber-3)
+		Else IF (joyButtonNumber = 11 AND joyButtonNumber = 12)
 			vstick.SetBtn(0,joyButtonNumber-2)
 		Else IF (joyButtonNumber = 13 OR joyButtonNumber = 14 OR joyButtonNumber = 15 OR joyButtonNumber = 16)
 			vstick.SetPOV(-1)
@@ -465,30 +473,30 @@ Return
 toggleHalf:
 	moveStickHalf := !moveStickHalf
 	IF (GetKeyState(downKey, "P"))
-		SetStick("N/A",(moveStickHalf ? 0.5 : 1), True)
+		SetStick("N/A",(moveStickHalf ? -0.5 : -1), True)
 	IF (GetKeyState(rightKey, "P"))
 		SetStick((moveStickHalf ? 0.5 : 1),"N/A", True)
 	IF (GetKeyState(leftKey, "P"))
 		SetStick((moveStickHalf ? -0.5 : -1),"N/A", True)
 	IF (GetKeyState(upKey, "P"))
-		SetStick("N/A",(moveStickHalf ? -0.5 : -1), True)
+		SetStick("N/A",(moveStickHalf ? 0.5 : 1), True)
 Return
 
 overwriteUp:
 Critical, On
 IF (moveStickHalf)
-	SetStick("N/A",-0.5, True)
+	SetStick("N/A",0.5, True)
 Else
-	SetStick("N/A",-1, True)
+	SetStick("N/A",1, True)
 Critical, Off
 Return
 overwriteUpup:
 Critical, On
 IF (GetKeyState(downKey, "P")) {
 	IF (moveStickHalf)
-		SetStick("N/A",0.5, True)
+		SetStick("N/A",-0.5, True)
 	Else
-		SetStick("N/A",1, True)
+		SetStick("N/A",-1, True)
 }
 Else
 	SetStick("N/A",0, True)
@@ -540,18 +548,18 @@ Return
 overwriteDown:
 Critical, On
 IF (moveStickHalf)
-	SetStick("N/A",0.5, True)
+	SetStick("N/A",-0.5, True)
 Else
-	SetStick("N/A",1, True)
+	SetStick("N/A",-1, True)
 Critical, Off
 Return
 overwriteDownup:
 Critical, On
 IF (GetKeyState(upKey, "P")) {
 	IF (moveStickHalf)
-		SetStick("N/A",-0.5, True)
+		SetStick("N/A",0.5, True)
 	Else
-		SetStick("N/A",-1, True)
+		SetStick("N/A",1, True)
 }
 Else
 	SetStick("N/A",0, True)
