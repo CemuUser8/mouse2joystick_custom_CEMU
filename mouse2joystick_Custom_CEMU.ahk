@@ -156,8 +156,7 @@ IF (exitKey)
 	Hotkey,%exitKey%,exitFunc, on
 
 mouse2joystick := True
-If mouse2joystick
-{
+IF (mouse2joystick) {
 	Gosub, initCvJoyInterface
 	Gosub, mouse2joystickHotkeys
 }
@@ -371,7 +370,7 @@ Return
 
 GyroControl:
 	SetTimer, mouseTojoystick, Off
-	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0)
+	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0) ; Slow mouse movement down a little bit
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
 		Hotkey,WheelUp, overwriteWheelUp, off
@@ -390,7 +389,7 @@ GyroControlOff:
 		Hotkey,WheelUp, overwriteWheelUp, on
 		Hotkey,WheelDown, overwriteWheelDown, on
 	}
-	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
+	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)  ; Restore the original speed.
 	SetTimer, mouseTojoystick, On
 Return
 
