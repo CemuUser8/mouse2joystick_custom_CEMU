@@ -33,4 +33,4 @@ rightDeadzone = 0.000000
 23 = button_8000000000
 24 = button_200000000
 25 = key_66
-26 = key_32
+26 = key_220
