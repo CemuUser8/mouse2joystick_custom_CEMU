@@ -22,11 +22,12 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.2.0.4"
+version := "v0.3.0.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
-#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
+;#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
+#Include CvJI/CvGenInterface.ahk
 ; Settings
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
@@ -38,8 +39,8 @@ SetBatchLines,-1
 ; On exit
 OnExit("exitFunc")
 SystemCursor("I")
-OrigMouseSpeed := ""
-DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
+;OrigMouseSpeed := ""
+;DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
 toggle:=1													; On/off parameter for the hotkey.	Toggle 0 means controller is on. The placement of this variable is disturbing.
 ; Icon
 Menu,Tray,Tip, mouse2joystick Customized for CEMU
@@ -211,13 +212,14 @@ Return
 
 
 initCvJoyInterface:
+	Global vXBox := usevXBox
 	; Copied from joytest.ahk, from CvJoyInterface by evilC
 	; Create an object from vJoy Interface Class.
-	vJoyInterface := new CvJoyInterface()
+	vGenInterface := new CvGenInterface()
 	; Was vJoy installed and the DLL Loaded?
-	IF (!vJoyInterface.vJoyEnabled()){
+	IF (!vGenInterface.vJoyEnabled()){
 		; Show log of what happened
-		Msgbox,% 4+16,vJoy Error,% "vJoy needs to be installed. Press no to exit application.`nLog:`n" . vJoyInterface.LoadLibraryLog ; Error handling changed.
+		Msgbox,% 4+16,vJoy Error,% "vJoy needs to be installed. Press no to exit application.`nLog:`n" . vGenInterface.LoadLibraryLog ; Error handling changed.
 		IfMsgBox Yes
 		{
 			;IniWrite, 0,settings.ini,General,mouse2joystick
@@ -225,13 +227,30 @@ initCvJoyInterface:
 		}
 		ExitApp
 	}
+	IF (vXBox AND !vGenInterface.IsVBusExist()) {
+		Msgbox,% 4 + 32 , Virtual xBox Bus not found, Press Yes If you would like to install ScpVBus, otherwise script will revert back to vJoy instead of vXBox.`n`nScript will reload after installing.
+		IfMsgBox Yes
+			InstallUninstallScpVBus(True)
+		Else
+			vXBox := False
+	}
 	ValidDevices := ""
 	Loop 15
 	{
-		IF (vJoyInterface.Devices[A_Index].IsAvailable())
+		IF (vGenInterface.Devices[A_Index].IsAvailable())
 			ValidDevices .= A_Index . "|"
 	}
-	Global vstick := vJoyInterface.Devices[vJoyDevice]
+
+	IF (vXBox) {
+		IF (!isObject(vStick)) {
+			vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not controller #1
+			Global vstick := vGenInterface.xDevices[1]
+			vstick.Acquire()
+			TrayTip,, % "Controller #" vstick.GetLedNumber() 
+		}
+	}
+	Else
+		Global vstick := vGenInterface.Devices[vJoyDevice]
 Return
 
 ; Hotkey labels
@@ -269,7 +288,7 @@ controllerSwitch:
 		
 		IF (hideCursor)
 			SystemCursor("Off")
-		DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
+		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
 			
 		IF (mouse2joystick)
 			SetTimer,mouseTojoystick,%freq%
@@ -283,7 +302,7 @@ controllerSwitch:
 		
 		IF (hideCursor)
 			SystemCursor("On")				; No need to show cursor if not hidden.
-		DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
+		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	
 	}
 	toggle:=!toggle
@@ -337,40 +356,82 @@ Return
 pressJoyButton:
 	keyName:=A_ThisHotkey
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	IF (joyButtonNumber = 7 AND lockZL) {
-		IF (ZLToggle)
-			vstick.SetBtn(0,joyButtonNumber)
+	IF (!vXBox){
+		IF (joyButtonNumber = 7 AND lockZL) {
+			IF (ZLToggle)
+				vstick.SetBtn(0,joyButtonNumber)
+			Else
+				vstick.SetBtn(1,joyButtonNumber)
+		}
+		Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
+			GoSub, GyroControl
+			vstick.SetBtn(1,joyButtonNumber)
+		}
+		Else IF (joyButtonNumber)
+			vstick.SetBtn(1,joyButtonNumber)
+	}
+	Else {
+		IF (joyButtonNumber = 7) {
+			IF (lockZL AND ZLToggle)
+				vstick.SetAxisByIndex(0,6)
+			Else
+				vstick.SetAxisByIndex(100,6)
+		}
+		Else IF (joyButtonNumber = 8)
+			vstick.SetAxisByIndex(100,3)
+		Else IF (joyButtonNumber >= 9 AND joyButtonNumber <= 12)
+			vstick.SetBtn(1,joyButtonNumber-2)
+		Else IF (joyButtonNumber = 13)
+			vstick.SetPOV(0)
+		Else IF (joyButtonNumber = 14)
+			vstick.SetPOV(180)
+		Else IF (joyButtonNumber = 15)
+			vstick.SetPOV(270)
+		Else IF (joyButtonNumber = 16)
+			vstick.SetPOV(90)
 		Else
 			vstick.SetBtn(1,joyButtonNumber)
 	}
-	Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
-		GoSub, GyroControl
-		vstick.SetBtn(1,joyButtonNumber)
-	}
-	Else IF (joyButtonNumber)
-		vstick.SetBtn(1,joyButtonNumber)
 Return
 
 releaseJoyButton:
 	keyName:=RegExReplace(A_ThisHotkey," Up$")
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	IF (joyButtonNumber = 7 AND lockZL) {
-		IF (ZLToggle)
-			vstick.SetBtn(1,joyButtonNumber)
+	IF (!vXBox){
+		IF (joyButtonNumber = 7 AND lockZL) {
+			IF (ZLToggle)
+				vstick.SetBtn(1,joyButtonNumber)
+			Else
+				vstick.SetBtn(0,joyButtonNumber)
+		}
+		Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
+			vstick.SetBtn(0,joyButtonNumber)
+			GoSub, GyroControlOff
+		}
+		Else IF (joyButtonNumber)
+			vstick.SetBtn(0,joyButtonNumber)
+	}
+	Else {
+		IF (joyButtonNumber = 7) {
+			IF (lockZL AND ZLToggle)
+				vstick.SetAxisByIndex(100,6)
+			Else
+				vstick.SetAxisByIndex(0,6)
+		}
+		Else IF (joyButtonNumber = 8)
+			vstick.SetAxisByIndex(0,3)
+		Else IF (joyButtonNumber >= 9 AND joyButtonNumber <= 12)
+			vstick.SetBtn(0,joyButtonNumber-2)
+		Else IF (joyButtonNumber = 13 OR joyButtonNumber = 14 OR joyButtonNumber = 15 OR joyButtonNumber = 16)
+			vstick.SetPOV(-1)
 		Else
 			vstick.SetBtn(0,joyButtonNumber)
 	}
-	Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
-		vstick.SetBtn(0,joyButtonNumber)
-		GoSub, GyroControlOff
-	}
-	Else IF (joyButtonNumber)
-		vstick.SetBtn(0,joyButtonNumber)
 Return
 
 GyroControl:
 	SetTimer, mouseTojoystick, Off
-	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0) ; Slow mouse movement down a little bit
+	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0) ; Slow mouse movement down a little bit
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
 		Hotkey,WheelUp, overwriteWheelUp, off
@@ -389,13 +450,16 @@ GyroControlOff:
 		Hotkey,WheelUp, overwriteWheelUp, on
 		Hotkey,WheelDown, overwriteWheelDown, on
 	}
-	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)  ; Restore the original speed.
+	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)  ; Restore the original speed.
 	SetTimer, mouseTojoystick, On
 Return
 
 
 toggleAimLock:
-	vstick.SetBtn((ZLToggle := !ZLToggle),7)
+	IF (vXbox)
+		vstick.SetAxisByIndex((ZLToggle := !ZLToggle) ? 100 : 0,6)
+	Else
+		vstick.SetBtn((ZLToggle := !ZLToggle),7)
 Return
 
 toggleHalf:
@@ -497,7 +561,10 @@ Return
 overwriteWheelUp:
 	SetStick(0,0)
 	IF (!alreadyDown){
-		vstick.SetBtn(1,16)
+		IF (vXbox)
+			vstick.SetPOV(90)
+		Else
+			vstick.SetBtn(1,16)
 		alreadyDown := True
 		DllCall("Sleep", Uint, 250)
 	}
@@ -509,7 +576,10 @@ Return
 overwriteWheelDown:
 	SetStick(0,0)
 	IF (!alreadyDown){
-		vstick.SetBtn(1,16)
+		IF (vXbox)
+			vstick.SetPOV(90)
+		Else
+			vstick.SetBtn(1,16)
 		alreadyDown := True
 		DllCall("Sleep", Uint, 250)
 	}
@@ -520,7 +590,10 @@ overwriteWheelDown:
 Return
 
 ReleaseDPad:
-	vstick.SetBtn(0,16)
+	IF (vXbox)
+		vstick.SetPOV(-1)
+	Else
+		vstick.SetBtn(0,16)
 	alreadyDown := False
 	SetTimer, ReleaseDPad, Off
 Return
@@ -706,12 +779,18 @@ setStick(x,y, a := False) {
 	; Input is x,y ∈ (-1,1) where 1 would mean full tilt in one direction, and -1 in the other, while zero would mean no tilt at all. Using this interval makes it easy to invert the axis
 	; (mainly this was choosen beacause the author didn't know the correct interval to use in CvJoyInterface)
 	; the input is not really compatible with the CvJoyInterface. Hence this transformation:	
-	x:=(x+1)*16384									; This maps x,y ∈ (-1,1) -> (0,32768)
-	y:=(y+1)*16384
+	IF (vXBox) {
+		x:=(x+1)*50									; This maps x,y (-1,1) -> (0,100)
+		y:=(y+1)*50
+	}
+	Else {
+		x:=(x+1)*16384									; This maps x,y (-1,1) -> (0,32768)
+		y:=(y+1)*16384
+	}
 	
 	; Use set by index.
 	; x = 1, y = 2.
-	IF ( a ) { ;IF (GetKeyState("RButton") OR a ) {
+	IF ( (!a AND vXbox) OR (a AND !vXBox) ) { ; IF (GetKeyState("RButton") OR a ) {
 		axisX := 4
 		axisY := 5
 	}
@@ -751,7 +830,7 @@ exitFunc() {
 	
 	BlockInput, MouseMoveOff
 	SystemCursor("On") ; DllCall("User32.dll\ShowCursor", "Int", 1)
-	DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
+	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	ExitApp
 }
 
@@ -1852,4 +1931,18 @@ LockMouseToWindow(llwindowname="") {
   } 
   DllCall("ClipCursor", "UInt", &llrectA)
 Return, True
+}
+
+
+InstallUninstallScpVBus(state:="ERROR"){
+	IF (state == "ERROR")
+		Return
+	IF (state){
+		RunWait, *Runas devcon.exe install ScpVBus.inf root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel
+	} Else {
+		RunWait, *Runas devcon.exe remove root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel
+	}
+	IF (ErrorLevel == "ERROR")
+		return 0
+	Reload
 }

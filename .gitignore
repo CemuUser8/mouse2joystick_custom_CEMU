@@ -2,3 +2,6 @@ mouse2joystick_Custom_CEMU.ico
 mouse2joystick_Custom_CEMU.ahk.ini
 *.exe
 *.zip
+
+!devcon.exe
+!WdfCoinstaller01009.dll
