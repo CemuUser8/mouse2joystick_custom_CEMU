@@ -87,7 +87,7 @@ exitKey=#q
 [Mouse2Joystick>Axes]
 angularDeadZone=0
 invertedX=0
-invertedY=1
+invertedY=0
 [Mouse2Joystick>Keys]
 joystickButtonKeyList=e,LShift,Space,LButton,1,3,LCtrl,RButton,Enter,m,q,c,i,k,j,l,b
 [KeyboardMovement>Keys]
@@ -103,6 +103,8 @@ hideCursor=1
 BotWmouseWheel=0
 lockZL=0
 nnVA=1
+BotWmotionAim=0
+usevXBox=0
 )
 	FileAppend,%defaultSettings%,settings.ini
 	IF (ErrorLevel) {
@@ -1652,7 +1654,7 @@ controllerSwitchKey=F1
 exitKey=#q
 angularDeadZone=0
 invertedX=0
-invertedY=1
+invertedY=0
 joystickButtonKeyList=e,LShift,Space,LButton,1,3,LCtrl,RButton,Enter,m,q,c,i,k,j,l,b
 upKey=w
 downKey=s
@@ -1665,6 +1667,8 @@ hideCursor=1
 BotWmouseWheel=0
 lockZL=0
 nnVA=1
+BotWmotionAim=0
+usevXBox=0
 )
 	Loop,Parse,pairsDefault,`n
 	{
@@ -1695,43 +1699,44 @@ setToggle := False
 GUI, Main:+Disabled
 GUI, KeyHelper:New, +HWNDKeyHelperHWND -MinimizeBox +OwnerMain
 GUI, Margin, 10, 7.5
+GUI, Font,, Lucida Sans Typewriter ; Courier New
 GUI, Add, Text, W0 H0 vLoseFocus, Hidden
-GUI, Add, Text, w60 R1 Right Section, A
+GUI, Add, Text, w80 R1 Right Section, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(A)","A") : "A"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[1]
-GUI, Add, Text, w60 xs R1 Right, B
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(B)","B") : "B"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[2]
-GUI, Add, Text, w60 xs R1 Right, X
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(X)","X") : "X"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[3]
-GUI, Add, Text, w60 xs R1 Right, Y
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Y)","Y") : "Y"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[4]
-GUI, Add, Text, w60 xs R1 Right, L
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(LB)","L") : "L"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[5]
-GUI, Add, Text, w60 xs R1 Right, R
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(RB)","R") : "R"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[6]
-GUI, Add, Text, w60 xs R1 Right, ZL
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(LT)","ZL") : "ZL"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[7]
-GUI, Add, Text, w60 xs R1 Right, ZR
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(RT)","ZR") : "ZR"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[8]
-GUI, Add, Text, w60 xs R1 Right, +
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Start)","+") : "+"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[9]
-GUI, Add, Text, w60 xs R1 Right, -
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Back)","-") : "-"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[10]
-GUI, Add, Text, w60 ys R1 Right Section, l-click
+GUI, Add, Text, w65 ys R1 Right Section, L-Click
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[11]
-GUI, Add, Text, w60 ys R1 Right Section, r-click
+GUI, Add, Text, w65 ys R1 Right Section, R-Click
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[12]
-GUI, Add, Text, w60 ys R1 Right Section, d-up
+GUI, Add, Text, w80 ys R1 Right Section, D-Up
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[13]
-GUI, Add, Text, w60 xs R1 Right, d-down
+GUI, Add, Text, w80 xs R1 Right, D-Down
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[14]
-GUI, Add, Text, w60 xs R1 Right, d-left
+GUI, Add, Text, w80 xs R1 Right, D-Left
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[15]
-GUI, Add, Text, w60 xs R1 Right, d-right
+GUI, Add, Text, w80 xs R1 Right, D-Right
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[16]
 GUI, Add, Text, w0 xs R1 Right, Dummy
-GUI, Add, Text, w60 xs R1 Right, blow-mic
+GUI, Add, Text, w80 xs R1 Right, Blow-Mic
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[17]
-GUI, Add, Text, w60 xs R1 Right, show-screen
+GUI, Add, Text, w80 xs R1 Right, Show-Screen
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[18]
 GUI, Add, Text, w0 xm+230 R1 Right, Dummy
 GUI, Add, Button, xp yp-30 w80 gSaveButton Section, Save
