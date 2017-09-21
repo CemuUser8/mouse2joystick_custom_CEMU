@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.0.1"
+version := "v0.3.0.2"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -237,22 +237,27 @@ initCvJoyInterface:
 			vXBox := False
 	}
 	ValidDevices := ""
-	Loop 15
-	{
-		IF (vGenInterface.Devices[A_Index].IsAvailable())
-			ValidDevices .= A_Index . "|"
-	}
+
 
 	IF (vXBox) {
-		IF (!isObject(vStick)) {
-			vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not controller #1
-			Global vstick := vGenInterface.xDevices[1]
-			vstick.Acquire()
-			TrayTip,, % "Controller #" vstick.GetLedNumber() 
+		IF (isObject(vStick)) {
+			vStick.Unplug()
+			vStick.Relinquish()
 		}
+		ValidDevices := "1|2|3|4|"
+		;vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not ran.
+		Global vstick := vGenInterface.xDevices[vJoyDevice]
+		vstick.Acquire()
+		TrayTip,, % "Controller #" vstick.GetLedNumber() 
+
 	}
-	Else
+	Else {
+		Loop 15 {
+			IF (vGenInterface.Devices[A_Index].IsAvailable())
+				ValidDevices .= A_Index . "|"
+		}
 		Global vstick := vGenInterface.Devices[vJoyDevice]
+	}
 Return
 
 ; Hotkey labels
@@ -835,6 +840,8 @@ exitFunc() {
 	IF (mouse2Joystick)	{
 		setStick(0,0)
 		SetStick(0,0, True)
+		IF (vXBox)
+			vstick.UnPlug()
 		vstick.Relinquish()
 	}
 	
