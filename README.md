@@ -16,7 +16,6 @@
 	* Choose [DirectInput for the Controller API](http://i.imgur.com/KKCLqs8.png)
 	* Make sure to [choose the device as `vJoy Device` and confirm it says connected](http://i.imgur.com/Zx9pTmK.png)
 		*  *Not sure if necessary* but [Press Calibrate](http://i.imgur.com/3E6UrZX.png)
-
 	* Choose the [appropriate Profile](http://i.imgur.com/nH7S3U7.png) for the type of controller you are setting up.
 	* [Click Load](http://i.imgur.com/PQFlfr1.png)
 
