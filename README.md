@@ -35,6 +35,7 @@ The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the imp
 
 **Mapping your keys**
 
+* Open the script settings by right clicking on the [controller icon in your system tray](http://i.imgur.com/fPBWOsU.png) (Bottom Right) and choose 'settings'
 * Goto the [Mouse2Joystick->Keys](http://i.imgur.com/eMMnEGj.png) page:
 	* You can set the [KeyList](http://i.imgur.com/JSJ1KsH.png) here 
 		* This is a comma separated list of [AHK valid keys](https://autohotkey.com/docs/KeyList.htm) in order of vJoy Buttons

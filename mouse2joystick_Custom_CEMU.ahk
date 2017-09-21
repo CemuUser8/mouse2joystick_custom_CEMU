@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.0.0"
+version := "v0.3.0.1"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -385,7 +385,7 @@ pressJoyButton:
 			vstick.SetBtn(1,joyButtonNumber-1)
 		Else IF (joyButtonNumber = 10)
 			vstick.SetBtn(1,joyButtonNumber-3)
-		Else IF (joyButtonNumber = 11 AND joyButtonNumber = 12)
+		Else IF (joyButtonNumber = 11 OR joyButtonNumber = 12)
 			vstick.SetBtn(1,joyButtonNumber-2)
 		Else IF (joyButtonNumber = 13)
 			vstick.SetPOV(0)
@@ -430,7 +430,7 @@ releaseJoyButton:
 			vstick.SetBtn(0,joyButtonNumber-1)
 		Else IF (joyButtonNumber = 10)
 			vstick.SetBtn(0,joyButtonNumber-3)
-		Else IF (joyButtonNumber = 11 AND joyButtonNumber = 12)
+		Else IF (joyButtonNumber = 11 OR joyButtonNumber = 12)
 			vstick.SetBtn(0,joyButtonNumber-2)
 		Else IF (joyButtonNumber = 13 OR joyButtonNumber = 14 OR joyButtonNumber = 15 OR joyButtonNumber = 16)
 			vstick.SetPOV(-1)
