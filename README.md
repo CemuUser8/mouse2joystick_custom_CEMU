@@ -68,7 +68,7 @@ Hopefully in 1.9.2 this will be resolved, and I will keep this section of the gu
  You can now alternatively have the script use a virtual XBox controller instead of DInput, this eliminates the deadzone issue as it isn't present for XInput devices. Or instead enable BotW motion aim (granted this is only a specific game fix instead of a general fix)
 
 * Make sure you've downloaded the latest version of the script (at least version listed above)
-* Open your settings and either [create or change the value of your chosen option to a 1](https://i.imgur.com/6iTussf.png).
+* Open your settings.ini file and either [create or change the value of your chosen option to a 1](https://i.imgur.com/6iTussf.png).
 	* `usevXBox=1 OR BotWmotionAim=1`
 	* The BotW motion aim does nothing when using vXbox
 * After enabling either feature reload the script
