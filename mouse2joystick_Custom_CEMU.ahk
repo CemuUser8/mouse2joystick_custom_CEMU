@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.1.0"
+version := "v0.3.1.1"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -72,10 +72,11 @@ IfNotExist, settings.ini
 (
 [General]
 gameExe=Cemu.exe
-mouse2joystick=1
+usevXBox=0
 autoActivateGame=1
 firstRun=1
 vJoyDevice=1
+vXBoxDevice=1
 [General>Setup]
 r=40
 k=0.02
@@ -104,7 +105,6 @@ BotWmouseWheel=0
 lockZL=0
 nnVA=1
 BotWmotionAim=0
-usevXBox=0
 )
 	FileAppend,%defaultSettings%,settings.ini
 	IF (ErrorLevel) {
@@ -237,26 +237,27 @@ initCvJoyInterface:
 			vXBox := False
 	}
 	ValidDevices := ""
-
-
+	Loop 15 {
+		IF (vGenInterface.Devices[A_Index].IsAvailable())
+			ValidDevices .= A_Index . "|"
+	}
 	IF (vXBox) {
-		ValidDevices := "1|2|3|4|"
-		IF (vJoyDevice != vstick.DeviceID) {
+		IF (vXboxDevice != vstick.DeviceID OR !vstick.GetLedNumber()) {
 			IF (isObject(vstick)) {
 				vstick.Unplug()
 				vstick.Relinquish()
 			}
 			;vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not ran.
-			Global vstick := vGenInterface.xDevices[vJoyDevice]
+			Global vstick := vGenInterface.xDevices[vXBoxDevice]
 			vstick.Acquire()
 			TrayTip,, % "Controller #" vstick.GetLedNumber() 
 		}
 
 	}
 	Else {
-		Loop 15 {
-			IF (vGenInterface.Devices[A_Index].IsAvailable())
-				ValidDevices .= A_Index . "|"
+		IF (isObject(vstick)) {
+			vstick.Unplug()
+			vstick.Relinquish()
 		}
 		Global vstick := vGenInterface.Devices[vJoyDevice]
 	}
@@ -1000,12 +1001,13 @@ editText=
 Gui, Main: add, GroupBox,Hidden vtext23478877 X170 Y25 W520 H64,Output mode
 Gui, Main: add, GroupBox,Hidden vtext1153671792 X170 Y95 W520 H53,Input desitnation
 Gui, Main: add, GroupBox,Hidden vtext1396826083 X170 Y155 W520 H45,Activate Executable
-Gui, Main: add, GroupBox,Hidden vvJoyGroupBox X170 Y215 W520 H53,vJoy Device
-Iniread,master_var,settings.ini,General,mouse2joystick
-checkMe:= (master_var="1") ? 1:0
-Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio1244113855_1 X185 Y45, Mouse2Joystick (requires vJoy)
+Gui, Main: add, GroupBox,Hidden vvJoyGroupBox X170 Y215 W174 H53,vJoy Device
+Gui, Main: add, GroupBox,Hidden vvXboxGroupBox X350 Y215 W174 H53,vXBox Device
+Iniread,master_var,settings.ini,General,usevXBox
 checkMe:= (master_var="0") ? 1:0
-;Gui, Main: Add, Radio, Hidden  Checked%checkMe% vradio1244113855_2,  Mouse2Keyboard
+Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio1244113855_1 X185 Y45, Use vJoy Device (DInput)
+checkMe:= (master_var="1") ? 1:0
+Gui, Main: Add, Radio, Hidden  Checked%checkMe% vradio1244113855_2,  Use vXBox Device (XInput)
 Iniread,master_var,settings.ini,General,autoActivateGame
 checkMe:= (master_var="1") ? 1:0
 Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio1371042200_1 X185 Y175, Yes
@@ -1026,6 +1028,9 @@ Text=
 Gui, Main: add, DropDownList, Hidden vvJoyDropDown Section X185 Y235, %ValidDevices%
 useList := RegExReplace(ValidDevices, "(^|\|)" . vJoyDevice . "(\||$)", "$1" . vJoyDevice . "|$2")
 GuiControl, Main:,vJoyDropDown, % "|" . useList
+Gui, Main: add, DropDownList, Hidden vvXBoxDropDown Section X365 Y235, 1|2|3|4|
+useList := RegExReplace("1|2|3|4|", "(^|\|)" . vXboxDevice . "(\||$)", "$1" . vXBoxDevice . "|$2")
+GuiControl, Main:,vXBoxDropDown, % "|" . useList
 Iniread,editText,settings.ini,General>Setup,r
 editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
 Gui, Main: add, Edit,Hidden Number   vedit968841594 X185 Y45 r1 w75,%editText%
@@ -1249,14 +1254,15 @@ submit_General:
 	edit1092695107:=RegExReplace(edit1092695107,"`n","DELIM_|_ITER")				
 	IniWrite,%edit1092695107%, settings.ini, General, gameExe
 		IF (radio1244113855_1=1)
-			IniWrite,1, settings.ini, General, mouse2joystick
+			IniWrite,0, settings.ini, General, usevXBox
 		IF (radio1244113855_2=1)
-			IniWrite,0, settings.ini, General, mouse2joystick
+			IniWrite,1, settings.ini, General, usevXBox
 		IF (radio1371042200_1=1)
 			IniWrite,1, settings.ini, General, autoActivateGame
 		IF (radio1371042200_2=1)
 			IniWrite,0, settings.ini, General, autoActivateGame
 	IniWrite, %vJoyDropDown%, settings.ini, General, vJoyDevice
+	IniWrite, %vXBoxDropDown%, settings.ini, General, vXBoxDevice
 If submitOnlyOne
 	Return
 submit_General>Setup:
@@ -1364,6 +1370,7 @@ GuiControl, Main: Show%hideShow%, text23478877
 GuiControl, Main: Show%hideShow%, text1153671792
 GuiControl, Main: Show%hideShow%, text1396826083
 GuiControl, Main: Show%hideShow%, vJoyGroupBox
+GuiControl, Main: Show%hideShow%, vXBoxGroupBox
 GuiControl, Main: Show%hideShow%, radio1244113855_1
 GuiControl, Main: Enable%hideShow%, radio1244113855_1
 GuiControl, Main: Show%hideShow%, radio1244113855_2
@@ -1381,6 +1388,7 @@ Automatically activate executable  (If it is running)  when controller is switch
 */
 GuiControl, Main: Show%hideShow%, text1649409801
 GuiControl, Main: Show%hideShow%, vJoyDropDown
+GuiControl, Main: Show%hideShow%, vXBoxDropDown
 Return
 General>Setup:
 GuiControl, Main: Show%hideShow%, edit968841594
@@ -1658,10 +1666,11 @@ setSettingsToDefault:
 	pairsDefault=
 (
 gameExe=Cemu.exe
-mouse2joystick=1
+usevXBox=0
 autoActivateGame=1
 firstRun=0
 vJoyDevice=1
+vXBoxDevice=1
 r=40
 k=0.02
 freq=25
@@ -1684,7 +1693,6 @@ BotWmouseWheel=0
 lockZL=0
 nnVA=1
 BotWmotionAim=0
-usevXBox=0
 )
 	Loop,Parse,pairsDefault,`n
 	{
