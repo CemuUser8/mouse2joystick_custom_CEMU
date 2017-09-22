@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.0.2"
+version := "v0.3.1.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -179,9 +179,9 @@ Loop,12
 
 ; Mouse blocker
 ; Transparent window that covers game screen to prevent game from capture the mouse.
-;Gui, Controller: New
-;Gui, Controller: +ToolWindow -Caption +AlwaysOnTop +HWNDstick
-;Gui, Controller: Color, FFFFFF
+Gui, Controller: New
+Gui, Controller: +ToolWindow -Caption +AlwaysOnTop +HWNDstick
+Gui, Controller: Color, FFFFFF
 
 ; Spam user with useless info, first time script runs.
 IF (firstRun) {
@@ -240,15 +240,17 @@ initCvJoyInterface:
 
 
 	IF (vXBox) {
-		IF (isObject(vStick)) {
-			vStick.Unplug()
-			vStick.Relinquish()
-		}
 		ValidDevices := "1|2|3|4|"
-		;vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not ran.
-		Global vstick := vGenInterface.xDevices[vJoyDevice]
-		vstick.Acquire()
-		TrayTip,, % "Controller #" vstick.GetLedNumber() 
+		IF (vJoyDevice != vstick.DeviceID) {
+			IF (isObject(vstick)) {
+				vstick.Unplug()
+				vstick.Relinquish()
+			}
+			;vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not ran.
+			Global vstick := vGenInterface.xDevices[vJoyDevice]
+			vstick.Acquire()
+			TrayTip,, % "Controller #" vstick.GetLedNumber() 
+		}
 
 	}
 	Else {
@@ -293,6 +295,10 @@ controllerSwitch:
 		; Move mouse to controller origin
 		MouseMove,OX,OY	
 		
+		; The mouse blocker
+		Gui, Controller: Show,NA x%gameX% y%gameY% w%gameW% h%gameH%,Controller
+		WinSet,Transparent,1,ahk_id %stick%	
+		
 		IF (hideCursor)
 			SystemCursor("Off")
 		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
@@ -310,6 +316,7 @@ controllerSwitch:
 		IF (hideCursor)
 			SystemCursor("On")				; No need to show cursor if not hidden.
 		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
+		Gui, Controller:Hide
 	
 	}
 	toggle:=!toggle
@@ -453,6 +460,7 @@ GyroControl:
 		Hotkey,WheelDown, overwriteWheelDown, off
 	}
 	SetStick(0,0)
+	Gui, Controller:Hide
 	Click, Right, Down
 	LockMouseToWindow("ahk_id " . gameID)
 Return
@@ -466,6 +474,7 @@ GyroControlOff:
 		Hotkey,WheelDown, overwriteWheelDown, on
 	}
 	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)  ; Restore the original speed.
+	Gui, Controller:Show, NA
 	SetTimer, mouseTojoystick, On
 Return
 
