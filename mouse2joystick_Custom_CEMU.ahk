@@ -41,29 +41,9 @@ OnExit("exitFunc")
 SystemCursor("I")
 ;OrigMouseSpeed := ""
 ;DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
+
 toggle:=1													; On/off parameter for the hotkey.	Toggle 0 means controller is on. The placement of this variable is disturbing.
-; Icon
-Menu,Tray,Tip, mouse2joystick Customized for CEMU
-Menu,Tray,NoStandard
 
-IF (A_OSVersion < "10.0.15063") ; It appears that the Icon has changed number on the newest versions of Windows.
-	useIcon := 26
-Else
-	useIcon := 27
-
-try
-	Menu,Tray,Icon,ddores.dll, %useIcon% 
-;Menu,Settings,openSettings
-Menu,Tray,Add,Settings,openSettings
-Menu,Tray,Add,
-Menu,Tray,Add,Reset to CEMU, selectGameMenu
-Menu,Tray,Add
-Menu,Tray,Add,About,aboutMenu
-Menu,Tray,Add,Help,helpMenu
-Menu,Tray,Add
-Menu,Tray,Add,Reload,reloadMenu
-Menu,Tray,Add,Exit,exitFunc
-Menu,Tray,Default, Settings
 
 ; If no settings file, create, When changing this, remember to make corresponding changes after the setSettingsToDefault label (error handling) ; Currently at bottom of script
 IfNotExist, settings.ini
@@ -163,6 +143,34 @@ IF (mouse2joystick) {
 	Gosub, initCvJoyInterface
 	Gosub, mouse2joystickHotkeys
 }
+
+; Icon
+Menu,Tray,Tip, mouse2joystick Customized for CEMU
+Menu,Tray,NoStandard
+
+IF (A_OSVersion < "10.0.15063") ; It appears that the Icon has changed number on the newest versions of Windows.
+	useIcon := 26
+Else
+	useIcon := 27
+
+try
+	Menu,Tray,Icon,ddores.dll, %useIcon% 
+;Menu,Settings,openSettings
+Menu,Tray,Add,Settings,openSettings
+Menu,Tray,Add,
+IF (vGenInterface.IsVBusExist())
+	Menu,Tray,Add,Uninstall ScpVBus, uninstallBus
+Else
+	Menu,Tray,Add,Install ScpVBus, installBus
+Menu,Tray,Add,
+Menu,Tray,Add,Reset to CEMU, selectGameMenu
+Menu,Tray,Add
+Menu,Tray,Add,About,aboutMenu
+Menu,Tray,Add,Help,helpMenu
+Menu,Tray,Add
+Menu,Tray,Add,Reload,reloadMenu
+Menu,Tray,Add,Exit,exitFunc
+Menu,Tray,Default, Settings
 
 IF freq is not Integer
 	freq := 25
@@ -1970,14 +1978,20 @@ LockMouseToWindow(llwindowname="") {
 Return, True
 }
 
+installBus:
+	InstallUninstallScpVBus(True)
+Return
+uninstallBus:
+	InstallUninstallScpVBus(False)
+Return
 
 InstallUninstallScpVBus(state:="ERROR"){
 	IF (state == "ERROR")
 		Return
 	IF (state){
-		RunWait, *Runas devcon.exe install ScpVBus.inf root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel
+		RunWait, *Runas devcon.exe install ScpVBus.inf root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
 	} Else {
-		RunWait, *Runas devcon.exe remove root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel
+		RunWait, *Runas devcon.exe remove root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
 	}
 	IF (ErrorLevel == "ERROR")
 		return 0
