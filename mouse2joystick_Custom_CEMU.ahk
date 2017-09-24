@@ -181,10 +181,6 @@ snapToFullTilt:=0.005							; This needs to be improved.
 ;nnp:=4	 										; Non-linearity parameter for joystick output, 1 = linear, >1 higher sensitivity closer to full tilt, <1 higher sensitivity closer to deadzone. Recommended range, [0.1,6]. 
 ; New parameters
 
-segmentEndAngles:=Object()						; Each segment is defined by its angle, segment 1,...,12 -> end angle pi/6,pi/3,...,2*pi [rad]. (Unfortuantley its clockwise, with 0/2pi being at three o'clock)
-Loop,12
-	segmentEndAngles[A_Index]:=pi/6*A_Index
-
 ; Mouse blocker
 ; Transparent window that covers game screen to prevent game from capture the mouse.
 Gui, Controller: New
@@ -902,6 +898,11 @@ GuiControl, -Redraw, Main
 Gui, Main: default
 TV_LoadTree(tree)
 GuiControl, +Redraw, Main 
+; Open settings to the General Section.
+hideShow=1
+Gosub,General	 
+hideShow=0
+SB_SetText("You are in: General",1)
 Return	
 TreeClick:
 	lastSection:=section
