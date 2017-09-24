@@ -1,6 +1,6 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2017-09-13
+;	Last Modified Date: 2017-09-24
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -22,12 +22,12 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.1.1"
+version := "v0.3.2.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
 ;#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
-#Include CvJI/CvGenInterface.ahk
+#Include CvJI/CvGenInterface.ahk ; A Modifed Interface that I (CemuUser8) added the vXBox device and functions to.
 ; Settings
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
@@ -903,6 +903,7 @@ hideShow=1
 Gosub,General	 
 hideShow=0
 SB_SetText("You are in: General",1)
+section := "General"
 Return	
 TreeClick:
 	lastSection:=section
