@@ -237,8 +237,10 @@ initCvJoyInterface:
 		Msgbox,% 4 + 32 , Virtual xBox Bus not found, Press Yes If you would like to install ScpVBus, otherwise script will revert back to vJoy instead of vXBox.`n`nScript will reload after installing.
 		IfMsgBox Yes
 			InstallUninstallScpVBus(True)
-		Else
+		Else {
 			vXBox := False
+			IniWrite,0, settings.ini, General, usevXBox ; Turn off the setting for the next run as well.
+		}
 	}
 	ValidDevices := ""
 	Loop 15 {
@@ -1968,7 +1970,7 @@ LockMouseToWindow(llwindowname="") {
   WinGetPos, llX, llY, llWidth, llHeight, %llwindowname%
   IF (!llWidth AND !llHeight) {
     DllCall("ClipCursor")
-    Return, False
+    Return False
   }
   Loop, 4 { 
     DllCall("RtlFillMemory", UInt,&llrectA+0+A_Index-1, UInt,1, UChar,llX+10 >> 8*A_Index-8) 
@@ -1977,7 +1979,7 @@ LockMouseToWindow(llwindowname="") {
     DllCall("RtlFillMemory", UInt,&llrectA+12+A_Index-1, UInt,1, UChar,(llHeight-10 + llY) >> 8*A_Index-8) 
   } 
   DllCall("ClipCursor", "UInt", &llrectA)
-Return, True
+Return True
 }
 
 installBus:
@@ -1994,6 +1996,7 @@ InstallUninstallScpVBus(state:="ERROR"){
 		RunWait, *Runas devcon.exe install ScpVBus.inf root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
 	} Else {
 		RunWait, *Runas devcon.exe remove root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
+		IniWrite,0, settings.ini, General, usevXBox ; Turn off the setting for future runs as well.
 	}
 	IF (ErrorLevel == "ERROR")
 		return 0
