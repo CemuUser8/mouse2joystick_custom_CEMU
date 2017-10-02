@@ -38,7 +38,6 @@ SetMouseDelay,-1
 SetBatchLines,-1
 ; On exit
 OnExit("exitFunc")
-SystemCursor("I")
 ;OrigMouseSpeed := ""
 ;DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
 
@@ -307,7 +306,7 @@ controllerSwitch:
 		WinSet,Transparent,1,ahk_id %stick%	
 		
 		IF (hideCursor)
-			SystemCursor("Off")
+			show_Mouse(False)
 		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
 			
 		IF (mouse2joystick)
@@ -321,7 +320,7 @@ controllerSwitch:
 		}			
 		
 		IF (hideCursor)
-			SystemCursor("On")				; No need to show cursor if not hidden.
+			show_Mouse()				; No need to show cursor if not hidden.
 		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 		Gui, Controller:Hide
 	
@@ -862,16 +861,10 @@ exitFunc() {
 	}
 	
 	BlockInput, MouseMoveOff
-	SystemCursor("On") ; DllCall("User32.dll\ShowCursor", "Int", 1)
+	show_Mouse() ; DllCall("User32.dll\ShowCursor", "Int", 1)
 	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	ExitApp
 }
-
-; Misc labels and such
-tipOff:
-	Tooltip
-Return
-
 
 ;
 ; End Script.
@@ -1931,37 +1924,53 @@ OnMessage(0x0207, "")
 OnMessage(0x020B, "")
 Return
 
-SystemCursor(OnOff=0)   ; INIT = "I","Init"; OFF = 0,"Off"; TOGGLE = -1,"T","Toggle"; ON = others
-{
-    static AndMask, XorMask, $, h_cursor
-        ,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13 ; system cursors
-        , b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13   ; blank cursors
-        , h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13   ; handles of default cursors
-    IF (OnOff = "Init" or OnOff = "I" or $ = "")       ; init when requested or at first call
-    {
-        $ = h                                          ; active default cursors
-        VarSetCapacity( h_cursor,4444, 1 )
-        VarSetCapacity( AndMask, 32*4, 0xFF )
-        VarSetCapacity( XorMask, 32*4, 0 )
-        system_cursors = 32512,32513,32514,32515,32516,32642,32643,32644,32645,32646,32648,32649,32650
-        StringSplit c, system_cursors, `,
-        Loop %c0%
-        {
-            h_cursor   := DllCall( "LoadCursor", "uint",0, "uint",c%A_Index% )
-            h%A_Index% := DllCall( "CopyImage",  "uint",h_cursor, "uint",2, "int",0, "int",0, "uint",0 )
-            b%A_Index% := DllCall("CreateCursor","uint",0, "int",0, "int",0
-                , "int",32, "int",32, "uint",&AndMask, "uint",&XorMask )
-        }
-    }
-    IF (OnOff = 0 or OnOff = "Off" or $ = "h" and (OnOff < 0 or OnOff = "Toggle" or OnOff = "T"))
-        $ = b  ; use blank cursors
-    else
-        $ = h  ; use the saved cursors
+;-------------------------------------------------------------------------------
+show_Mouse(bShow := True) { ; show/hide the mouse cursor
+;-------------------------------------------------------------------------------
+	; https://autohotkey.com/boards/viewtopic.php?p=173707#p173707
+    ; WINAPI: SystemParametersInfo, CreateCursor, CopyImage, SetSystemCursor
+    ; https://msdn.microsoft.com/en-us/library/windows/desktop/ms724947.aspx
+    ; https://msdn.microsoft.com/en-us/library/windows/desktop/ms648385.aspx
+    ; https://msdn.microsoft.com/en-us/library/windows/desktop/ms648031.aspx
+    ; https://msdn.microsoft.com/en-us/library/windows/desktop/ms648395.aspx
+    ;---------------------------------------------------------------------------
+    static BlankCursor
+    static CursorList := "32512, 32513, 32514, 32515, 32516, 32640, 32641"
+        . ",32642, 32643, 32644, 32645, 32646, 32648, 32649, 32650, 32651"
+    local ANDmask, XORmask, CursorHandle
 
-    Loop %c0%
+    IF (bShow) ; shortcut for showing the mouse cursor
+        Return, DllCall("SystemParametersInfo"
+            , "UInt", 0x57              ; UINT  uiAction    (SPI_SETCURSORS)
+            , "UInt", 0                 ; UINT  uiParam
+            , "Ptr",  0                 ; PVOID pvParam
+            , "UInt", 0)                ; UINT  fWinIni
+
+    IF (!BlankCursor) { ; create BlankCursor only once
+        VarSetCapacity(ANDmask, 32 * 4, 0xFF)
+        VarSetCapacity(XORmask, 32 * 4, 0x00)
+        BlankCursor := DllCall("CreateCursor"
+            , "Ptr", 0                  ; HINSTANCE  hInst
+            , "Int", 0                  ; int        xHotSpot
+            , "Int", 0                  ; int        yHotSpot
+            , "Int", 32                 ; int        nWidth
+            , "Int", 32                 ; int        nHeight
+            , "Ptr", &ANDmask           ; const VOID *pvANDPlane
+            , "Ptr", &XORmask)          ; const VOID *pvXORPlane
+    }
+
+    ; set all system cursors to blank, each needs a new copy
+    Loop, Parse, CursorList, `,, %A_Space%
     {
-        h_cursor := DllCall( "CopyImage", "uint",%$%%A_Index%, "uint",2, "int",0, "int",0, "uint",0 )
-        DllCall( "SetSystemCursor", "uint",h_cursor, "uint",c%A_Index% )
+        CursorHandle := DllCall("CopyImage"
+            , "Ptr", BlankCursor        ; HANDLE hImage
+            , "UInt", 2                 ; UINT   uType      (IMAGE_CURSOR)
+            , "Int",  0                 ; int    cxDesired
+            , "Int",  0                 ; int    cyDesired
+            , "UInt", 0)                ; UINT   fuFlags
+        DllCall("SetSystemCursor"
+            , "Ptr", CursorHandle       ; HCURSOR hcur
+            , "UInt",  A_Loopfield)     ; DWORD   id
     }
 }
 
@@ -1994,9 +2003,11 @@ InstallUninstallScpVBus(state:="ERROR"){
 		Return
 	IF (state){
 		RunWait, *Runas devcon.exe install ScpVBus.inf root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
+		MsgBox,, Done Installing, reloading the script., 1
 	} Else {
 		RunWait, *Runas devcon.exe remove root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
 		IniWrite,0, settings.ini, General, usevXBox ; Turn off the setting for future runs as well.
+		MsgBox,, Done Un-Installing, reloading the script., 1
 	}
 	IF (ErrorLevel == "ERROR")
 		return 0

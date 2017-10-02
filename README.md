@@ -1,25 +1,39 @@
-# Script last updated on September 21, 2017.
+# Script last updated on October 02, 2017.
+Added Support for virtual XBox ( XInput ) controller as well as the default Direct Input vJoy devices. This still requires vJoy as that is still what provides the functionality.  It will also require that ScpVBus be installed, however I've included the necessary files and a system that will prompt to install the feature when used. I also provide a Menu-Tray option to uninstall ScpVBus if you'd like. I did not create it and so I can't provide much more info and support on it, but check out [this site for more info](http://vjoystick.sourceforge.net/site/index.php/vxbox).
 
 &nbsp;
 
+
 ***
-# Initial Setup
+# Initial Setup (Updated to include vXBox images)
 ***
 1. Install the latest [vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download) 
-2. Run the [vJoy Configuration](http://i.imgur.com/vvHW0yz.png) 
+2. Run the [vJoy Configuration](http://i.imgur.com/vvHW0yz.png) (Not necessary if you only plan on using vXBox)
 	* Set it up so it has **at least 18 Buttons**, I set mine to 32.
 3. 	[Download controller profiles](https://bitbucket.org/CemuUser8/files/downloads/vJoyControllerProfiles.zip)  for CEMU > 1.9.0   &nbsp;&nbsp;&nbsp;&nbsp; *(Also included in GitHub release zip)*
-	* Extract these text files into your [CEMU controllerProfiles folder](http://i.imgur.com/goq6zIZ.png)
-	* As of Version 0.3.0.0 of the script (09/21/17) these have changed to fix the axis for both movement and camera, so please update or you will have inverted controls for moving and aiming.
+	* Extract these text files into your [CEMU controllerProfiles folder](https://i.imgur.com/Mf5L6km.png)
 4. Then open CEMU and goto the [input settings](http://i.imgur.com/N5Nibtq.png)
 	* Choose the type of controller you want to use, [either 'Wii U Pro Controller' or 'Wii U GamePad'](http://i.imgur.com/sfKWlgu.png)
-	* Choose [DirectInput for the Controller API](http://i.imgur.com/KKCLqs8.png)
-	* Make sure to [choose the device as `vJoy Device` and confirm it says connected](http://i.imgur.com/Zx9pTmK.png)
-		*  *Not sure if necessary* but [Press Calibrate](http://i.imgur.com/3E6UrZX.png)
-	* Choose the [appropriate Profile](http://i.imgur.com/nH7S3U7.png) for the type of controller you are setting up.
+	* If using standard vJoy Device
+		* Choose [DirectInput for the Controller API](http://i.imgur.com/KKCLqs8.png)
+		* Make sure to [choose the device as `vJoy Device` and confirm it says connected](http://i.imgur.com/Zx9pTmK.png)
+	* If using vXBox Device 
+		* **Run the script FIRST and [choose 'Use vXBox Device'](https://i.imgur.com/s2TnMep.png) on the General Page of settings**
+			* If this is the first time you will be prompted to Install ScpVBus, choose yes, then yes again on the security prompt to run `DevCon`
+			* Script will reload and if the message box doesn't show up again you should be ready to use vXBox.
+		* Choose [XInput for the Controller API](https://i.imgur.com/2sPQM3e.png)
+		* Make sure to [choose a controller and confirm it says connected](https://i.imgur.com/syOuO0f.png) (May need to press refresh for Controller to show up)
+			* If it doesn't say connected try [switching the vXBox device number in the script settings](https://i.imgur.com/3MC3B9L.png) one of them WILL say connected in CEMU (this seems to be a CEMU quirk as other applications don't care which vXBox device is selected it will always grab the active one)
+	* *Not sure if necessary but [Press Calibrate](http://i.imgur.com/3E6UrZX.png)*
+	* Choose the [appropriate Profile](https://i.imgur.com/zMdtNwy.png) for the type of controller you are setting up.
 	* [Click Load](http://i.imgur.com/PQFlfr1.png)
+	
+&nbsp; 
 
-The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the important part is that each button be mapped in order as `Button #`
+* For vJoy devices -- The input setup should look [like this](http://i.imgur.com/SvBR4BN.png)
+
+* For vXBox devices -- The input setup should look [like this](https://i.imgur.com/ZAVpvMa.png)
+	* *Note: feel free to manually remap the blow mic and showscreen buttons here, as the vXBox controller doesn't have enough buttons for them to be included.*
 
 ### If it doesn't look like this, you are going to have a problem
 
@@ -29,7 +43,7 @@ The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the imp
 1. Visit the [GitHub release page](https://github.com/CemuUser8/mouse2joystick_custom_CEMU/releases) and download the latest release (0.3.0.0 currently)
 2. Launch the script:
 	* Double click the `.ahk` file if you have AutoHotKey installed.
-	* Run the exe if you don't.
+	* Run the exe if you don't. 
 3. IF you don't want to customize anything you are ready to use the Script.
 	* Press `F1` to toggle the controller ( CEMU and Script must be running )
 
@@ -54,7 +68,7 @@ The input setup should look [like this](http://i.imgur.com/SvBR4BN.png), the imp
 
 Note: you can still keep KeyList strings for different games saved to a text file locally, and just paste it in (like it used to have to be done)
 
-## Notes for 1.9.1
+## Notes for CEMU > 1.9.0
 * There is some built-in Deadzone in CEMU for DInput devices that even when set 0 is still present (around 10% it seems)
 	* This causes the camera movement to be jerky, and precise aiming is a giant pain
 * The Deadzone sliders are reversed under the sticks, meaning the left slider affects the camera instead of the right one
@@ -62,29 +76,7 @@ Note: you can still keep KeyList strings for different games saved to a text fil
 
 Currently the best settings I've found to *HELP* alleviate the issue is as [pictured here.](http://i.imgur.com/9DnHmW6.png)
 
-Hopefully in 1.9.2 this will be resolved, and I will keep this section of the guide updated until it is.
-
-### New in Version 0.3.0.0 of the script.
- You can now alternatively have the script use a virtual XBox controller instead of DInput, this eliminates the deadzone issue as it isn't present for XInput devices. Or instead enable BotW motion aim (granted this is only a specific game fix instead of a general fix)
-
-* Make sure you've downloaded the latest version of the script (at least version listed above)
-* Open your settings.ini file and either [create or change the value of your chosen option to a 1](https://i.imgur.com/6iTussf.png).
-	* `usevXBox=1 OR BotWmotionAim=1`
-	* The BotW motion aim does nothing when using vXbox
-* After enabling either feature reload the script
-	* Either re-run, or right click the icon and choose reload from the menu
-* If it is the first time you are running the script using vXBox it will most likely need to install ScpVBus
-	* A Message Box will pop up
-		* if you press yes a prompt to run Devcon will appear, press yes
-		* If you press no, vXBox will be disabled for this run
-	* The script will reload and if successful the message box will not re-appear.
-	* Set up CEMU input settings similar to the guide at the top except
-		* Pick XInput
-		* Choose the virtual XBox controller
-		* Load the appropriate vXBox controller profile for your chosen controller type (included in the download)
-
-I will work on advancing this option, and once ready I will add it to the Settings GUI, and re-make the main guide for the option, for now I am considering it an Advanced (hidden) option, and will expect users to know a bit about what they are doing with my script. That doesn't mean I won't support users trying this feature out, but I will most likely ask for steps already attempted.
-
+**I recommend trying to use the XInput option of the script as this issue is not present with XInput devices.**
 
 ***
 
