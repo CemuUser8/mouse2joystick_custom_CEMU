@@ -1,6 +1,6 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2017-10-02
+;	Last Modified Date: 2017-10-09
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.2.0"
+version := "v0.3.2.1"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -1730,13 +1730,13 @@ GUI, KeyHelper:New, +HWNDKeyHelperHWND -MinimizeBox +OwnerMain
 GUI, Margin, 10, 7.5
 GUI, Font,, Lucida Sans Typewriter ; Courier New
 GUI, Add, Text, W0 H0 vLoseFocus, Hidden
-GUI, Add, Text, w80 R1 Right Section, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(A)","A") : "A"
+GUI, Add, Text, w80 R1 Right Section, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(A - ✕)","A") : "A"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[1]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(B)","B") : "B"
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(B - ○)","B") : "B"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[2]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(X)","X") : "X"
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(X - ⬜)","X") : "X"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[3]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Y)","Y") : "Y"
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Y - △)","Y") : "Y"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[4]
 GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(LB)","L") : "L"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[5]
