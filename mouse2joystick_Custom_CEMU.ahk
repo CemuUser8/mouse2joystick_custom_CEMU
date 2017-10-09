@@ -1734,7 +1734,7 @@ GUI, Add, Text, w80 R1 Right Section, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(A -
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[1]
 GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(B - ○)","B") : "B"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[2]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(X - ⬜)","X") : "X"
+GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(X - □)","X") : "X"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[3]
 GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Y - △)","Y") : "Y"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[4]
