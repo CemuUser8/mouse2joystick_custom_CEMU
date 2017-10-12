@@ -150,3 +150,27 @@ Currently the best settings I've found to *HELP* alleviate the issue is as [pict
 
 ***
 ***Please feel free to comment here for help, or send me a PM.***
+
+&nbsp;
+
+&nbsp;
+
+##Instructions for rpcs3 (or any non CEMU XInput use):
+
+* Install the [latest version of vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download)
+* Run the downloaded program (or AutoHotkey script if you download the source)
+* Open the program settings by on the [controller icon in your system tray](http://i.imgur.com/fPBWOsU.png) (Bottom Right) and choose 'settings'
+* [Choose to use vXBox.](https://i.imgur.com/s2TnMep.png) AND [Choose "No" under the "Activate Executable" Section](https://i.imgur.com/vlB7qXm.png) - Press "Ok" to reload the script with the option enabled.
+* If the first time, a prompt will come up asking to install ScpVBus, Press Yes, then on the security prompt to run DevCon Press Yes again.
+* The script will reload and connect a virtual XBox controller, drivers may be installed automatically on Windows10, or you will need them pre-installed on Windows7.
+* To remap your keys Open the settings and goto the[ "Mouse2Joystick -> Keys"](http://i.imgur.com/eMMnEGj.png) section.
+* Press the [KeyList Helper Button](http://i.imgur.com/VF2vwfE.png)
+* You can map your [keys on this screen](https://i.imgur.com/IhTR03m.png), read the ReadMe for how to add a second key to the same button
+* Set your movement keys on the ["KeyboardMovement -> Keys"](http://i.imgur.com/okKlFwE.png) settings screen. (Clear the Toggle ZL Lock and Toggle Gyro keys by clicking them and pressing `Backspace` - they aren't needed in rpcs3)
+* In rpcs3, set your controller to use XInput
+* When you want to use the controller Press "F1" (default but customizable) to toggle using the virtual Controller.
+
+That should be it, your mouse should now control the Right Analog stick, and your movement keys the Left.
+
+I will be honest I have not done this myself, I have just helped someone else do it and they said it works perfectly just needed a quick guide on how to set it up for this.
+***
