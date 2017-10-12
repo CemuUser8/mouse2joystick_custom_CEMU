@@ -155,7 +155,7 @@ Currently the best settings I've found to *HELP* alleviate the issue is as [pict
 
 &nbsp;
 
-##Instructions for rpcs3 (or any non CEMU XInput use):
+## Instructions for rpcs3 (or any non CEMU XInput use):
 
 * Install the [latest version of vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download)
 * Run the downloaded program (or AutoHotkey script if you download the source)
