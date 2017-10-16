@@ -28,6 +28,7 @@ SendMode Input															; Recommended for new scripts due to its superior s
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
 ;#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
 #Include CvJI/CvGenInterface.ahk ; A Modifed Interface that I (CemuUser8) added the vXBox device and functions to.
+#Include CvJI/MouseDelta.ahk ; Alternate way to see mouse movement
 ; Settings
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
@@ -57,7 +58,7 @@ firstRun=1
 vJoyDevice=1
 vXBoxDevice=1
 [General>Setup]
-r=40
+r=80
 k=0.02
 freq=25
 nnp=.55
@@ -84,6 +85,7 @@ BotWmouseWheel=0
 lockZL=0
 nnVA=1
 BotWmotionAim=0
+useAltMouseMethod=0
 )
 	FileAppend,%defaultSettings%,settings.ini
 	IF (ErrorLevel) {
@@ -128,6 +130,10 @@ angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct ra
 moveStickHalf := False
 KeyList := []
 KeyListByNum := []
+
+md := new MouseDelta("MouseEvent")
+xSen := 10
+ySen := 7
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
@@ -308,16 +314,26 @@ controllerSwitch:
 		IF (hideCursor)
 			show_Mouse(False)
 		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
-			
-		IF (mouse2joystick)
+		
+		IF (useAltMouseMethod) {
+			md.Start()
+			IF (gameID)
+				ToolTip, % LockMouseToWindow("ahk_ID " . gameID)
+		}
+		Else
 			SetTimer,mouseTojoystick,%freq%
+
 	}
 	Else {	; Shutting down controller
-		IF (mouse2joystick) {
+		setStick(0,0)															; Stick in equllibrium.
+		setStick(0,0, True)
+		IF (useAltMouseMethod) {
+			md.Stop()
+			IF (gameID)
+				ToolTip, % LockMouseToWindow(False)
+		}
+		Else
 			SetTimer,mouseTojoystick,Off
-			setStick(0,0)															; Stick in equllibrium.
-			setStick(0,0, True)
-		}			
 		
 		IF (hideCursor)
 			show_Mouse()				; No need to show cursor if not hidden.
@@ -468,12 +484,14 @@ GyroControl:
 	SetStick(0,0)
 	Gui, Controller:Hide
 	Click, Right, Down
-	LockMouseToWindow("ahk_id " . gameID)
+	IF (!useAltMouseMethod)
+		LockMouseToWindow("ahk_id " . gameID)
 Return
 
 GyroControlOff:
 	Click, Right, Up
-	LockMouseToWindow()
+	IF (!useAltMouseMethod)
+		LockMouseToWindow()
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
 		Hotkey,WheelUp, overwriteWheelUp, on
@@ -860,7 +878,8 @@ exitFunc() {
 		vstick.Relinquish()
 	}
 	
-	BlockInput, MouseMoveOff
+	md.Delete()
+	md := ""
 	show_Mouse() ; DllCall("User32.dll\ShowCursor", "Int", 1)
 	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	ExitApp
@@ -1676,7 +1695,7 @@ autoActivateGame=1
 firstRun=0
 vJoyDevice=1
 vXBoxDevice=1
-r=40
+r=80
 k=0.02
 freq=25
 nnp=.55
@@ -1698,6 +1717,7 @@ BotWmouseWheel=0
 lockZL=0
 nnVA=1
 BotWmotionAim=0
+useAltMouseMethod=0
 )
 	Loop,Parse,pairsDefault,`n
 	{
@@ -1977,16 +1997,11 @@ show_Mouse(bShow := True) { ; show/hide the mouse cursor
 LockMouseToWindow(llwindowname="") {
   VarSetCapacity(llrectA, 16)
   WinGetPos, llX, llY, llWidth, llHeight, %llwindowname%
-  IF (!llWidth AND !llHeight) {
+  IF (!llX OR !llY OR !llWidth OR !llHeight OR !llwindowname) {
     DllCall("ClipCursor")
     Return False
   }
-  Loop, 4 { 
-    DllCall("RtlFillMemory", UInt,&llrectA+0+A_Index-1, UInt,1, UChar,llX+10 >> 8*A_Index-8) 
-    DllCall("RtlFillMemory", UInt,&llrectA+4+A_Index-1, UInt,1, UChar,llY+54 >> 8*A_Index-8) 
-    DllCall("RtlFillMemory", UInt,&llrectA+8+A_Index-1, UInt,1, UChar,(llWidth-10 + llX)>> 8*A_Index-8) 
-    DllCall("RtlFillMemory", UInt,&llrectA+12+A_Index-1, UInt,1, UChar,(llHeight-10 + llY) >> 8*A_Index-8) 
-  } 
+  NumPut(llX+10,&llrectA+0),NumPut(llY+54,&llrectA+4),NumPut(llWidth-10 + llX,&llrectA+8),NumPut(llHeight-10 + llY,&llrectA+12)
   DllCall("ClipCursor", "UInt", &llrectA)
 Return True
 }
@@ -2012,4 +2027,22 @@ InstallUninstallScpVBus(state:="ERROR"){
 	IF (ErrorLevel == "ERROR")
 		return 0
 	Reload
+}
+
+; Gets called when mouse moves
+; x and y are DELTA moves (Amount moved since last message), NOT coordinates.
+MouseEvent(MouseID, x := 0, y := 0){
+	Global xSen, ySen
+	IF (x>xSen)
+		x := xSen
+	Else IF (x<-xSen)
+		x := -xSen
+	IF (y>ySen)
+		y := ySen
+	Else IF (y<-ySen)
+		y := -ySen
+	x *= 100/xSen
+	y *= -100/ySen
+	SetStick(x/100,y/100)
+	Return
 }
