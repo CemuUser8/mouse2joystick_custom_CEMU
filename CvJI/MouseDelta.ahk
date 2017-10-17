@@ -58,7 +58,7 @@ Class MouseDelta {
 	; Called when the mouse moved.
 	; Messages tend to contain small (+/- 1) movements, and happen frequently (~20ms)
 	MouseMoved(wParam, lParam){
-		Critical
+		;Critical
 		; RawInput statics
 		static DeviceSize := 2 * A_PtrSize, iSize := 0, sz := 0, pcbSize:=8+2*A_PtrSize, offsets := {x: (20+A_PtrSize*2), y: (24+A_PtrSize*2)}, uRawInput
  
@@ -91,7 +91,7 @@ Class MouseDelta {
 	}
  
 	TimeoutFunc(){
-		this.Callback.("", 0, 0)
+		this.Callback.("RESET", 0, 0)
 	}
  
 }

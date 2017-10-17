@@ -1,6 +1,6 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2017-10-09
+;	Last Modified Date: 2017-10-16
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.3.2.1"
+version := "v0.3.3.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -132,8 +132,8 @@ KeyList := []
 KeyListByNum := []
 
 md := new MouseDelta("MouseEvent")
-xSen := 10
-ySen := 7
+xSen := 2
+ySen := 2
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
@@ -317,20 +317,18 @@ controllerSwitch:
 		
 		IF (useAltMouseMethod) {
 			md.Start()
-			IF (gameID)
-				ToolTip, % LockMouseToWindow("ahk_ID " . gameID)
+			LockMouseToWindow("ahk_id " . stick)
 		}
 		Else
 			SetTimer,mouseTojoystick,%freq%
 
 	}
 	Else {	; Shutting down controller
-		setStick(0,0)															; Stick in equllibrium.
+		setStick(0,0)															; Stick in equilibrium.
 		setStick(0,0, True)
 		IF (useAltMouseMethod) {
+			LockMouseToWindow(False)
 			md.Stop()
-			IF (gameID)
-				ToolTip, % LockMouseToWindow(False)
 		}
 		Else
 			SetTimer,mouseTojoystick,Off
@@ -474,7 +472,6 @@ releaseJoyButton:
 Return
 
 GyroControl:
-	SetTimer, mouseTojoystick, Off
 	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0) ; Slow mouse movement down a little bit
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
@@ -484,14 +481,14 @@ GyroControl:
 	SetStick(0,0)
 	Gui, Controller:Hide
 	Click, Right, Down
-	IF (!useAltMouseMethod)
+	IF (!useAltMouseMethod) {
 		LockMouseToWindow("ahk_id " . gameID)
+		SetTimer, mouseTojoystick, Off
+	}
 Return
 
 GyroControlOff:
 	Click, Right, Up
-	IF (!useAltMouseMethod)
-		LockMouseToWindow()
 	IF (BotWmouseWheel) {
 		Hotkey, If, (!toggle && mouse2joystick)
 		Hotkey,WheelUp, overwriteWheelUp, on
@@ -499,9 +496,11 @@ GyroControlOff:
 	}
 	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)  ; Restore the original speed.
 	Gui, Controller:Show, NA
-	SetTimer, mouseTojoystick, On
+	IF (!useAltMouseMethod){
+		LockMouseToWindow()
+		SetTimer, mouseTojoystick, On
+	}
 Return
-
 
 toggleAimLock:
 	IF (vXbox)
@@ -1244,12 +1243,20 @@ Text=
 Iniread,master_var,settings.ini,Extra Settings,hideCursor									
 boxName=																				
 (
-Hide when controller is on.
+  Hide when controller is on.
 )
 checkMe:=(master_var="1" ) ? 1:(master_var="0" ? 0:-1)
 Gui, Main: add, Checkbox, Hidden  Checked%checkMe% vcheckbox1135789786 X185 Y215,%boxName%
-boxName= 
+Iniread,master_var,settings.ini,Extra Settings,useAltMouseMethod									
+boxName=																				
+(
+  Use Mouse Delta Instead.
+)
+checkMe:=(master_var="1" ) ? 1:(master_var="0" ? 0:-1)
+Gui, Main: add, Checkbox, Hidden  Checked%checkMe% vcheckbox1135789787 X185 Y270,%boxName%
+
 Gui, Main: add, GroupBox,Hidden vtext1829586573 X170 Y195 W520 H45,Cursor
+Gui, Main: add, GroupBox,Hidden vAltMouseGroupBox X170 Y250 W520 H45,Alternate Mouse Movement Detection
 Gui, Main: add, GroupBox,Hidden vtext833212790 X170 Y25 W520 H45,Enable BotW MouseWheel Weapon Change Feature
 Gui, Main: add, GroupBox,Hidden vtext1505650515 X170 Y80 W520 H45,Enable ZL Lock Key Feature
 ;Gui, Main: add, GroupBox,Hidden vtext1612995781 X170 Y140 W520 H45,Enable nonlinear visual aid
@@ -1371,6 +1378,8 @@ If submitOnlyOne
 submit_Visual_aid:
 			writeVal:=(checkbox1135789786=1) ? "1" : "0"
 			IniWrite,%writeVal%, settings.ini, Extra Settings, hideCursor
+			writeVal:=(checkbox1135789787=1) ? "1" : "0"
+			IniWrite,%writeVal%, settings.ini, Extra Settings, useAltMouseMethod
 		IF (radio2102688731_1=1)
 			IniWrite,1, settings.ini, Extra Settings, BotWmouseWheel
 		IF (radio2102688731_2=1)
@@ -1575,7 +1584,10 @@ Return
 Extra_Settings:
 GuiControl, Main: Show%hideShow%, checkbox1135789786
 GuiControl, Main: Enable%hideShow%, checkbox1135789786
+GuiControl, Main: Show%hideShow%, checkbox1135789787
+GuiControl, Main: Enable%hideShow%, checkbox1135789787
 GuiControl, Main: Show%hideShow%, text1829586573
+GuiControl, Main: Show%hideShow%, AltMouseGroupBox
 GuiControl, Main: Show%hideShow%, text833212790
 GuiControl, Main: Show%hideShow%, text1505650515
 GuiControl, Main: Show%hideShow%, radio2102688731_1
@@ -1743,32 +1755,39 @@ Loop, Parse, getKeyList, `,
 		continue
 	KeyListByNum[A_Index] := keyName
 }
-
+IF (vXBox) {
+	textWidth := 100
+	numEdits := 16
+}
+Else {
+	textWidth := 50
+	numEdits := 18
+}
 setToggle := False
 GUI, Main:+Disabled
 GUI, KeyHelper:New, +HWNDKeyHelperHWND -MinimizeBox +OwnerMain
 GUI, Margin, 10, 7.5
 GUI, Font,, Lucida Sans Typewriter ; Courier New
 GUI, Add, Text, W0 H0 vLoseFocus, Hidden
-GUI, Add, Text, w80 R1 Right Section, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(A - ✕)","A") : "A"
+GUI, Add, Text, W%textWidth% R1 Right Section, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( A - ✕ )","A") : "A"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[1]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(B - ○)","B") : "B"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( B - ○ )","B") : "B"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[2]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(X - □)","X") : "X"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( X - □ )","X") : "X"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[3]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Y - △)","Y") : "Y"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Y - △ )","Y") : "Y"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[4]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(LB)","L") : "L"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(LB - L1)","L") : "L"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[5]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(RB)","R") : "R"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(RB - R1)","R") : "R"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[6]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(LT)","ZL") : "ZL"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(LT - L2)","ZL") : "ZL"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[7]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(RT)","ZR") : "ZR"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(RT - R2)","ZR") : "ZR"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[8]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Start)","+") : "+"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Start )","+") : "+"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[9]
-GUI, Add, Text, w80 xs R1 Right, % vXBox ? Format("{1:-7.7s}{2:4.4s}","(Back)","-") : "-"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Back  )","-") : "-"
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[10]
 GUI, Add, Text, w65 ys R1 Right Section, L-Click
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[11]
@@ -1783,10 +1802,12 @@ GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[15]
 GUI, Add, Text, w80 xs R1 Right, D-Right
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[16]
 GUI, Add, Text, w0 xs R1 Right, Dummy
-GUI, Add, Text, w80 xs R1 Right, Blow-Mic
-GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[17]
-GUI, Add, Text, w80 xs R1 Right, Show-Screen
-GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[18]
+IF(!vXBox) {
+	GUI, Add, Text, w80 xs R1 Right, Blow-Mic
+	GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[17]
+	GUI, Add, Text, w80 xs R1 Right, Show-Screen
+	GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[18]
+}
 GUI, Add, Text, w0 xm+230 R1 Right, Dummy
 GUI, Add, Button, xp yp-30 w80 gSaveButton Section, Save
 GUI, Add, Button, x+m w80 gCancelButton, Cancel
@@ -1799,7 +1820,7 @@ Return
 
 ClearButton:
 	GUI, KeyHelper:Default
-	Loop 18
+	Loop %numEdits%
 		GUIControl,,Edit%A_Index%,
 Return
 
@@ -1816,7 +1837,7 @@ Return
 
 SaveButton:
 	tempList := ""
-	Loop 18
+	Loop %numEdits%
 	{
 	GUIControlGet, tempKey,,Edit%A_Index%
 		tempList .= tempKey . ","
@@ -1847,7 +1868,7 @@ AutoLoop:
 	Loop 4
 		GUIControl, +Disabled, Button%A_Index%
 	setToggle := True
-	Loop 18 {
+	Loop %numEdits% {
 		useControl := "Edit" . A_Index
 		GetKey()
 	}
@@ -1995,15 +2016,17 @@ show_Mouse(bShow := True) { ; show/hide the mouse cursor
 }
 
 LockMouseToWindow(llwindowname="") {
-  VarSetCapacity(llrectA, 16)
-  WinGetPos, llX, llY, llWidth, llHeight, %llwindowname%
-  IF (!llX OR !llY OR !llWidth OR !llHeight OR !llwindowname) {
-    DllCall("ClipCursor")
-    Return False
+  IF (!llwindowname) {
+	DllCall("ClipCursor", "UInt", 0)
+	Return False
   }
-  NumPut(llX+10,&llrectA+0),NumPut(llY+54,&llrectA+4),NumPut(llWidth-10 + llX,&llrectA+8),NumPut(llHeight-10 + llY,&llrectA+12)
-  DllCall("ClipCursor", "UInt", &llrectA)
-Return True
+  WinGetPos, llX, llY, llWidth, llHeight, %llwindowname%
+  VarSetCapacity(llrectA, 16)
+  IF (llWidth AND llHeight) {
+	NumPut(llX+10,&llrectA+0),NumPut(llY+54,&llrectA+4),NumPut(llWidth-10 + llX,&llrectA+8),NumPut(llHeight-10 + llY,&llrectA+12)
+	DllCall("ClipCursor", "UInt", &llrectA)
+	Return True
+  }
 }
 
 installBus:
@@ -2033,16 +2056,35 @@ InstallUninstallScpVBus(state:="ERROR"){
 ; x and y are DELTA moves (Amount moved since last message), NOT coordinates.
 MouseEvent(MouseID, x := 0, y := 0){
 	Global xSen, ySen
-	IF (x>xSen)
-		x := xSen
-	Else IF (x<-xSen)
-		x := -xSen
-	IF (y>ySen)
-		y := ySen
-	Else IF (y<-ySen)
-		y := -ySen
-	x *= 100/xSen
-	y *= -100/ySen
-	SetStick(x/100,y/100)
+	Static useX, useY
+	IF (MouseID == "RESET") {
+	useX := useY := 0
+		SetStick(0,0)
+		Return
+	}
+	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
+		useX := 0
+	Else IF (x < 0)
+		useX -= xSen * abs(x)
+	Else IF (x > 0)
+		useX += xSen * abs(x)
+	IF ((y < 0 AND useY > 0) OR (y > 0 AND useY < 0))
+		useY := 0
+	Else IF (y < 0)
+		useY -= ySen * abs(y)
+	Else IF (y > 0)
+		useY += ySen * abs(y)
+	ToolTip, X:%useX%  Y:%useY%
+	IF (useX>100)
+		useX := 100
+	Else IF (useX<-100)
+		useX := -100
+	IF (useY>100)
+		useY := 100
+	Else IF (useY<-100)
+		useY := -100
+	;useX *= 100/xSen
+	;useY *= -100/ySen
+	SetStick(useX/100,-useY/100)
 	Return
 }
