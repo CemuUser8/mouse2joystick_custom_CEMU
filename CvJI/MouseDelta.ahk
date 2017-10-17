@@ -87,7 +87,7 @@ Class MouseDelta {
  
 		; There is no message for "Stopped", so simulate one
 		fn := this.TimeoutFn
-		SetTimer, % fn, -25
+		SetTimer, % fn, -33
 	}
  
 	TimeoutFunc(){

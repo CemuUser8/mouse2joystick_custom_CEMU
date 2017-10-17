@@ -132,8 +132,8 @@ KeyList := []
 KeyListByNum := []
 
 md := new MouseDelta("MouseEvent")
-xSen := 2
-ySen := 2
+xSen := 6
+ySen := 5
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
@@ -2058,38 +2058,25 @@ MouseEvent(MouseID, x := 0, y := 0){
 	Global xSen, ySen
 	Static useX, useY
 	IF (MouseID == "RESET") {
-	useX := useY := 0
+		useX := useY := 0
 		SetStick(0,0)
 		Return
 	}
-	IF (x AND !useX)
-		useX := 20 * (x/20)
-	IF (y AND !useY)
-		useY := 20 * (y/20)
-	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
-		useX := 0
-	Else IF (x < 0)
-		useX -= xSen * abs(x)
-	Else IF (x > 0)
-		useX += xSen * abs(x)
-	IF ((y < 0 AND useY > 0) OR (y > 0 AND useY < 0))
-		useY := 0
-	Else IF (y < 0)
-		useY -= ySen * abs(y)
-	Else IF (y > 0)
-		useY += ySen * abs(y)
-	
-	IF (useX>100)
-		useX := 100
-	Else IF (useX<-100)
-		useX := -100
+
+	IF (!x)
+		useX /= 2
+	Else IF (abs(x)>xSen)
+		useX := x/abs(x) * xSen
+	Else
+		useX := x
+
+	IF (!y)
+		useY /= 2
+	Else IF (abs(y)>ySen)
+		useY := y/abs(y) * ySen
+	Else
+		useY := y
 		
-	IF (useY>100)
-		useY := 100
-	Else IF (useY<-100)
-		useY := -100
-	;useX *= 100/xSen
-	;useY *= -100/ySen
-	SetStick(useX/100,-useY/100)
+	SetStick(useX/xSen,-useY/ySen)
 	Return
 }
