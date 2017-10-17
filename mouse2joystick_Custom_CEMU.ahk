@@ -2062,6 +2062,10 @@ MouseEvent(MouseID, x := 0, y := 0){
 		SetStick(0,0)
 		Return
 	}
+	IF (x AND !useX)
+		useX := 20 * (x/20)
+	IF (y AND !useY)
+		useY := 20 * (y/20)
 	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
 		useX := 0
 	Else IF (x < 0)
@@ -2074,11 +2078,12 @@ MouseEvent(MouseID, x := 0, y := 0){
 		useY -= ySen * abs(y)
 	Else IF (y > 0)
 		useY += ySen * abs(y)
-	ToolTip, X:%useX%  Y:%useY%
+	
 	IF (useX>100)
 		useX := 100
 	Else IF (useX<-100)
 		useX := -100
+		
 	IF (useY>100)
 		useY := 100
 	Else IF (useY<-100)
