@@ -216,7 +216,7 @@ aboutMenu:
 Return
 
 helpMenu:
-	Msgbox,% 4+ 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nIt is helpful to know the version (%version%)`nand If possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
+	Msgbox,% 4 + 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nIt is helpful to know the version (%version%)`nand If possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
 	IfMsgBox Yes
 		Run, https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/
 Return
@@ -480,11 +480,11 @@ GyroControl:
 	}
 	SetStick(0,0)
 	Gui, Controller:Hide
-	Click, Right, Down
 	IF (!useAltMouseMethod) {
 		LockMouseToWindow("ahk_id " . gameID)
 		SetTimer, mouseTojoystick, Off
 	}
+	Click, Right, Down
 Return
 
 GyroControlOff:
