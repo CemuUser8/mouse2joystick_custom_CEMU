@@ -1,5 +1,14 @@
-# Script last updated on October 02, 2017.
-Added Support for virtual XBox ( XInput ) controller as well as the default Direct Input vJoy devices. This still requires vJoy as that is still what provides the functionality.  It will also require that ScpVBus be installed, however I've included the necessary files and a system that will prompt to install the feature when used. I also provide a Menu-Tray option to uninstall ScpVBus if you'd like. I did not create it and so I can't provide much more info and support on it, but check out [this site for more info](http://vjoystick.sourceforge.net/site/index.php/vxbox).
+# Script last updated on October 25, 2017.
+Version 0.4.0.0
+
+ * Completely re-wrote settings code
+ 	* Allows me to more easily manage adding and/or changing the settings for the script
+ * [Added ability to save keylists](https://i.imgur.com/E6Bualc.png), in pretty much the exact way CEMU lets you manage Controller Profiles
+ * From this version on **64bit is required**, this shouldn't' be an issue since CEMU already has that requirement.
+ * Updated included ScpVBus, as the version I had was outdated, and probably 32bit.
+ 
+ I highly recommend deleting your `settings.ini` file when upgrading to this version. Things have moved, and one section changed names ever so slightly. The way this works shouldn't cause any actual issues, but still the file will be cleaner if you: make note your settings -> delete the file -> re-input your changes.
+ 
 
 &nbsp;
 
