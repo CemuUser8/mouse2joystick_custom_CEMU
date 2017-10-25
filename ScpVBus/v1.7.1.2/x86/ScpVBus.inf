@@ -8,7 +8,7 @@ Class=System
 ClassGuid={4D36E97D-E325-11CE-BFC1-08002BE10318}
 Provider=%ManufacturerName%
 CatalogFile=ScpVBus.cat
-DriverVer=09/27/2016,9.11.9.337
+DriverVer=09/27/2016,9.11.25.89
 
 [DestinationDirs]
 DefaultDestDir = 12
@@ -26,9 +26,9 @@ ScpVBus.sys  = 1,,
 ;*****************************************
 
 [Manufacturer]
-%ManufacturerName%=SCProductions,NTamd64
+%ManufacturerName%=SCProductions,NTx86
 
-[SCProductions.NTamd64]
+[SCProductions.NTx86]
 %ScpVBus.DeviceDesc%=ScpVBus_Device, Root\ScpVBus
 
 [ScpVBus_Device.NT]
