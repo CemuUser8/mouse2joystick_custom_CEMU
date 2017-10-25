@@ -99,7 +99,7 @@ useAltMouseMethod=0
 		Else 
 			ExitApp
 	}
-	firstRun := 1 ; Moved out of ini File.
+	firstRun := True ; Moved out of ini File.
 }
 
 ; Read settings.
@@ -872,7 +872,7 @@ Mouse2Joystick|Axes,Keys
 Keyboard Movement|Keys
 Extra Settings
 )"
-GUI, Main:New,, Settings
+GUI, Main:New, -MinimizeBox, % "Mouse2Joystick Custom for CEMU Settings  -  " . version
 GUI, Add, Text,, Options:
 GUI, Add, TreeView, xm w150 r16 gTreeClick Section
 GUI, Add, Button,xs w150 gMainOk, Ok
@@ -944,7 +944,7 @@ GUI, Tab, Mouse2Joystick>Keys
 	GUI, Add, GroupBox, x%SX% yp+40 w440 h50, Saved KeyList Manager
 	IniRead,allSavedLists,SavedKeyLists.ini
 	allSavedLists := StrReplace(allSavedLists, "`n", "|")
-	GUI, Add, ComboBox, xs+10 yp+20 w200 vopSaveListName, %allSavedLists%
+	GUI, Add, ComboBox, xs+10 yp+20 w210 vopSaveListName, %allSavedLists%
 	GUI, Add, Button, x+m w60 gLoadSavedList, Load
 	GUI, Add, Button, x+m w60 gSaveSavedList, Save
 	GUI, Add, Button, x+m w60 gDeleteSavedList, Delete
@@ -991,7 +991,7 @@ GUI, Tab, Extra Settings
 	GUI, Add, CheckBox, % "xp+10 yp+20 vopuseAltMouseMethod Checked" . useAltMouseMethod, Use Mouse Delta? (Experimental)
 GUI, Add, StatusBar
 BuildTree("Main", tree)
-Gui, Main: Show,, % "Mouse2Joystick Custom for CEMU Settings  -  " . version
+Gui, Main: Show
 Return	
 
 TreeClick:
