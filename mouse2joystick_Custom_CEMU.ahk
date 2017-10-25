@@ -1,6 +1,6 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2017-10-16
+;	Last Modified Date: 2017-10-23
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -58,15 +58,14 @@ firstRun=1
 vJoyDevice=1
 vXBoxDevice=1
 [General>Setup]
-r=80
+r=20
 k=0.02
 freq=25
-nnp=.55
+nnp=.80
 [General>Hotkeys]
 controllerSwitchKey=F1
 exitKey=#q
 [Mouse2Joystick>Axes]
-angularDeadZone=0
 invertedX=0
 invertedY=0
 [Mouse2Joystick>Keys]
@@ -123,8 +122,6 @@ Loop,Parse,allSections,`n
 readSettingsSkippedDueToError:	; This comes from setSettingsToDefault If there was an error.
 
 pi:=atan(1)*4													; Approx pi.
-angularDeadZone*=pi/180											; Convert to radians
-angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
 
 ; Constants and such. Some values are commented out because they have been stored in the settings.ini file instead, but are kept because they have comments.
 moveStickHalf := False
@@ -691,41 +688,16 @@ action(phi,tilt) {
 	; When this is called it is already established that the deadzone is left, or the inner radius.
 	; pmX/pmY is used for inverting axis.
 	; snapToFullTilt is used to ensure full tilt is possible, this needs to be improved, should be dependent on the sensitivity.
-	Global angularDeadZone,pmX,pmY,pi,snapToFullTilt
+	Global pmX,pmY,pi,snapToFullTilt
 
 	; Adjust tilt
 	tilt:=tilt>1 ? 1:tilt
 	IF (snapToFullTilt!=-1)
 		tilt:=1-tilt<=snapToFullTilt ? 1:tilt
 	
-	; If in angular deadzone, only output to one axis is done, for easy "full tilt" in one direction without any small drift to other direction.
-	; In angular deadzone, the output is "output"
-	IF (phi<3*pi/2+angularDeadZone && phi>3*pi/2-angularDeadZone)							; In angular deadzone for Y-axis forward tilt.
-	{
-		setStick(0,pmY*tilt)
-		Return
-	}
-	IF (phi<pi+angularDeadZone && phi>pi-angularDeadZone)									; In angular deadzone for X-axis left    tilt.
-	{
-		setStick(-pmX*tilt,0)
-		Return
-	}
-	IF (phi<pi/2+angularDeadZone && phi>pi/2-angularDeadZone)								; In angular deadzone for Y-axis down	 tilt.
-	{
-		setStick(0,-pmY*tilt)
-		Return
-	}	
-	IF ((phi>2*pi-angularDeadZone && phi<2*pi) || (phi<angularDeadZone && phi>=0) )			; In angular deadzone for Y-axis right	 tilt.
-	{
-		setStick(pmX*tilt,0)
-		Return
-	}
-	
-	; Not inside angular deadzone. Here leq and geq should be used. There are eight cases.
-	
 	; Two cases with forward+right
 	; Tilt is forward and slightly right.
-	lb:=3*pi/2+angularDeadZone						; lb is lower bound
+	lb:=3*pi/2										; lb is lower bound
 	ub:=7*pi/4										; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
@@ -736,7 +708,7 @@ action(phi,tilt) {
 	}
 	; Tilt is slightly forward and right.
 	lb:=7*pi/4										; lb is lower bound
-	ub:=2*pi-angularDeadZone						; ub is upper bound
+	ub:=2*pi						; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
 		x:=pmX*tilt
@@ -747,7 +719,7 @@ action(phi,tilt) {
 	
 	; Two cases with right+downward
 	; Tilt is right and slightly downward.
-	lb:=angularDeadZone								; lb is lower bound
+	lb:=0											; lb is lower bound
 	ub:=pi/4										; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
@@ -758,7 +730,7 @@ action(phi,tilt) {
 	}
 	; Tilt is downward and slightly right.
 	lb:=pi/4										; lb is lower bound
-	ub:=pi/2-angularDeadZone						; ub is upper bound
+	ub:=pi/2										; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
 		x:=pmX*tilt*scale(phi,lb,ub)
@@ -769,7 +741,7 @@ action(phi,tilt) {
 	
 	; Two cases with downward+left
 	; Tilt is downward and slightly left.
-	lb:=pi/2+angularDeadZone						; lb is lower bound
+	lb:=pi/2										; lb is lower bound
 	ub:=3*pi/4										; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
@@ -780,7 +752,7 @@ action(phi,tilt) {
 	}
 	; Tilt is left and slightly downward.
 	lb:=3*pi/4										; lb is lower bound
-	ub:=pi-angularDeadZone							; ub is upper bound
+	ub:=pi											; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
 		x:=-pmX*tilt
@@ -791,7 +763,7 @@ action(phi,tilt) {
 	
 	; Two cases with forward+left
 	; Tilt is left and slightly forward.
-	lb:=pi+angularDeadZone							; lb is lower bound
+	lb:=pi											; lb is lower bound
 	ub:=5*pi/4										; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
@@ -802,7 +774,7 @@ action(phi,tilt) {
 	}
 	; Tilt is forward and slightly left.
 	lb:=5*pi/4										; lb is lower bound
-	ub:=3*pi/2-angularDeadZone						; ub is upper bound
+	ub:=3*pi/2										; ub is upper bound
 	IF (phi>=lb && phi<=ub)							
 	{
 		x:=-pmX*tilt*scale(phi,lb,ub)
@@ -1006,8 +978,6 @@ mainOk:
 	}
 	pmX:=invertedX ? -1:1											; Sign for inverting axis
 	pmY:=invertedY ? -1:1
-	angularDeadZone*=pi/180											; Convert to radians
-	angularDeadZone:=angularDeadZone>pi/4 ? pi/4:angularDeadZone	; Ensure correct range
 
 	; Enable new hotkeys
 	IF (controllerSwitchKey)
@@ -1120,13 +1090,8 @@ Follow instructions and don't try to break it.
 )
 Gui, Main: add, Text,Hidden vtext938990667 X170 Y25,%Text%
 Text= 
-Iniread,editText,settings.ini,Mouse2Joystick>Axes,angularDeadZone
-editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
-Gui, Main: add, Edit,Hidden Number  Limit2 vedit446078763 X185 Y155 r1 w75,%editText%
-editText= 
 Gui, Main: add, GroupBox,Hidden vtext1772933493 X170 Y35 W520 H45,Invert X-axis
 Gui, Main: add, GroupBox,Hidden vtext11683084 X170 Y85 W520 H45,Invert Y-axis
-Gui, Main: add, GroupBox,Hidden vtext1550313039 X170 Y135 W520 H53,Angular deadzone
 Iniread,master_var,settings.ini,Mouse2Joystick>Axes,invertedX
 checkMe:= (master_var="1") ? 1:0
 Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio1025876589_1 X185 Y55, Yes
@@ -1137,12 +1102,6 @@ checkMe:= (master_var="1") ? 1:0
 Gui, Main: Add, Radio, Hidden Section Group Checked%checkMe% vradio122217493_1 X185 Y105, Yes
 checkMe:= (master_var="0") ? 1:0
 Gui, Main: Add, Radio, Hidden ys Checked%checkMe% vradio122217493_2,  No
-Text=	
-(
-Range: [0,45]. Defines the area where only one axis is used.
-)
-Gui, Main: add, Text,Hidden vtext374447714 X275 Y159,%Text%
-Text= 
 Iniread,editText,settings.ini,Mouse2Joystick>Keys,joystickButtonKeyList
 editText:=RegExReplace(editText,"DELIM_\|_ITER","`n")
 Gui, Main: add, Edit,Hidden -Wrap   vedit1874406880 X185 Y50 r1 w475,%editText%
@@ -1322,8 +1281,6 @@ submit_Mouse2Joystick:
 If submitOnlyOne
 	Return
 submit_Mouse2Joystick>Axes:
-	edit446078763:=RegExReplace(edit446078763,"`n","DELIM_|_ITER")				
-	IniWrite,%edit446078763%, settings.ini, Mouse2Joystick>Axes, angularDeadZone
 		IF (radio1025876589_1=1)
 			IniWrite,1, settings.ini, Mouse2Joystick>Axes, invertedX
 		IF (radio1025876589_2=1)
@@ -1707,13 +1664,12 @@ autoActivateGame=1
 firstRun=0
 vJoyDevice=1
 vXBoxDevice=1
-r=80
+r=20
 k=0.02
 freq=25
-nnp=.55
+nnp=.80
 controllerSwitchKey=F1
 exitKey=#q
-angularDeadZone=0
 invertedX=0
 invertedY=0
 joystickButtonKeyList=e,LShift,Space,LButton,1,3,LCtrl,RButton,Enter,m,q,c,i,k,j,l,b
