@@ -77,16 +77,6 @@ Version 0.4.0.0
 
 Note: you can still keep KeyList strings for different games saved to a text file locally, and just paste it in (like it used to have to be done)
 
-## Notes for CEMU > 1.9.0
-* There is some built-in Deadzone in CEMU for DInput devices that even when set 0 is still present (around 10% it seems)
-	* This causes the camera movement to be jerky, and precise aiming is a giant pain
-* The Deadzone sliders are reversed under the sticks, meaning the left slider affects the camera instead of the right one
-	* This is un-intuitive and a bug most likely.
-
-Currently the best settings I've found to *HELP* alleviate the issue is as [pictured here.](http://i.imgur.com/9DnHmW6.png)
-
-**I recommend trying to use the XInput option of the script as this issue is not present with XInput devices.**
-
 ***
 
 **Other Settings Overview**
