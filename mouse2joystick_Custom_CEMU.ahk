@@ -41,7 +41,7 @@ SetBatchLines,-1
 OnExit("exitFunc")
 
 IF (A_PtrSize < 8) {
-	MsgBox,16,Now Requies 64bit, Starting with Version 0.4.0.0 this program requires 64bit. If you are getting this error you must be running the script directly and have 32bit AutoHotkey installed.`n`nPlease either use the released executable, or change your AutoHotkey installation to the 64bit Unicode version 
+	MsgBox,16,Now Requires 64bit, Starting with Version 0.4.0.0 this program requires 64bit. If you are getting this error you must be running the script directly and have 32bit AutoHotkey installed.`n`nPlease either use the released executable, or change your AutoHotkey installation to the 64bit Unicode version 
 	ExitApp
 }
 ;OrigMouseSpeed := ""
@@ -55,11 +55,11 @@ IfNotExist, settings.ini
 	defaultSettings=
 (
 [General]
-gameExe=Cemu.exe
 usevXBox=0
-autoActivateGame=1
 vJoyDevice=1
 vXBoxDevice=1
+gameExe=Cemu.exe
+autoActivateGame=1
 [General>Setup]
 r=20
 k=0.02
@@ -81,10 +81,10 @@ rightKey=d
 walkToggleKey=Numpad0
 gyroToggleKey=
 [Extra Settings]
-hideCursor=1
 BotWmouseWheel=0
 lockZL=0
 lockZLToggleKey=Numpad1
+hideCursor=1
 BotWmotionAim=0
 useAltMouseMethod=0
 )
@@ -1257,9 +1257,9 @@ setSettingsToDefault:
 (
 gameExe=Cemu.exe
 usevXBox=0
-autoActivateGame=1
 vJoyDevice=1
 vXBoxDevice=1
+autoActivateGame=1
 r=20
 k=0.02
 freq=25
@@ -1275,10 +1275,10 @@ downKey=s
 rightKey=d
 walkToggleKey=Numpad0
 gyroToggleKey=
-hideCursor=1
 BotWmouseWheel=0
 lockZL=0
 lockZLToggleKey=Numpad1
+hideCursor=1
 BotWmotionAim=0
 useAltMouseMethod=0
 )
