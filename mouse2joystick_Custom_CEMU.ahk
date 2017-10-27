@@ -79,6 +79,7 @@ leftKey=a
 downKey=s
 rightKey=d
 walkToggleKey=Numpad0
+walkSpeed=0.5
 gyroToggleKey=
 [Extra Settings]
 BotWmouseWheel=0
@@ -511,19 +512,19 @@ Return
 toggleHalf:
 	moveStickHalf := !moveStickHalf
 	IF (GetKeyState(downKey, "P"))
-		SetStick("N/A",(moveStickHalf ? -0.5 : -1), True)
+		SetStick("N/A",(moveStickHalf ? -1 * walkSpeed : -1), True)
 	IF (GetKeyState(rightKey, "P"))
-		SetStick((moveStickHalf ? 0.5 : 1),"N/A", True)
+		SetStick((moveStickHalf ? 1 * walkSpeed : 1),"N/A", True)
 	IF (GetKeyState(leftKey, "P"))
-		SetStick((moveStickHalf ? -0.5 : -1),"N/A", True)
+		SetStick((moveStickHalf ? -1 * walkSpeed : -1),"N/A", True)
 	IF (GetKeyState(upKey, "P"))
-		SetStick("N/A",(moveStickHalf ? 0.5 : 1), True)
+		SetStick("N/A",(moveStickHalf ? 1 * walkSpeed : 1), True)
 Return
 
 overwriteUp:
 Critical, On
 IF (moveStickHalf)
-	SetStick("N/A",0.5, True)
+	SetStick("N/A",1 * walkSpeed, True)
 Else
 	SetStick("N/A",1, True)
 Critical, Off
@@ -532,7 +533,7 @@ overwriteUpup:
 Critical, On
 IF (GetKeyState(downKey, "P")) {
 	IF (moveStickHalf)
-		SetStick("N/A",-0.5, True)
+		SetStick("N/A",-1 * walkSpeed, True)
 	Else
 		SetStick("N/A",-1, True)
 }
@@ -544,7 +545,7 @@ Return
 overwriteLeft:
 Critical, On
 IF (moveStickHalf)
-	SetStick(-0.5,"N/A", True)
+	SetStick(-1 * walkSpeed,"N/A", True)
 Else
 	SetStick(-1,"N/A", True)
 Critical, Off
@@ -553,7 +554,7 @@ overwriteLeftup:
 Critical, On
 IF (GetKeyState(rightKey, "P")) {
 	IF (moveStickHalf)
-		SetStick(0.5,"N/A", True)
+		SetStick(1 * walkSpeed,"N/A", True)
 	Else
 		SetStick(1,"N/A", True)
 }
@@ -565,7 +566,7 @@ Return
 overwriteRight:
 Critical, On
 IF (moveStickHalf)
-	SetStick(0.5,"N/A", True)
+	SetStick(1 * walkSpeed,"N/A", True)
 Else
 	SetStick(1,"N/A", True)
 Critical, Off
@@ -574,7 +575,7 @@ overwriteRightup:
 Critical, On
 IF (GetKeyState(leftKey, "P")) {
 	IF (moveStickHalf)
-		SetStick(-0.5,"N/A", True)
+		SetStick(-1 * walkSpeed,"N/A", True)
 	Else
 		SetStick(-1,"N/A", True)
 }
@@ -586,7 +587,7 @@ Return
 overwriteDown:
 Critical, On
 IF (moveStickHalf)
-	SetStick("N/A",-0.5, True)
+	SetStick("N/A",-1 * walkSpeed, True)
 Else
 	SetStick("N/A",-1, True)
 Critical, Off
@@ -595,7 +596,7 @@ overwriteDownup:
 Critical, On
 IF (GetKeyState(upKey, "P")) {
 	IF (moveStickHalf)
-		SetStick("N/A",0.5, True)
+		SetStick("N/A",1 * walkSpeed, True)
 	Else
 		SetStick("N/A",1, True)
 }
@@ -963,11 +964,17 @@ GUI, Tab, Keyboard Movement>Keys
 	GUI, Add, Text, xs+10 yp+25 Right w80, Right:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 voprightKey, %rightKey%
 	
-	GUI, Add, GroupBox, xs w320 h80, Extra Keys
-	GUI, Add, Text, xs+10 yp+25 Right w80, Toggle Walk:
+	GUI, Add, GroupBox, xs w320 h80, Walking
+	GUI, Add, Text, xs+10 yp+20 Right w80, Toggle Walk:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopwalkToggleKey, %walkToggleKey%
+	GUI, Add, Text, xs+10 yp+35 Right w80, Walking Speed:
+	GUI, Add, Slider, x+2 yp-8 w180 Range0-100 TickInterval10 Thick12 vopwalkSpeed gWalkSpeedChange AltSubmit, % walkSpeed*100
+	GUI, Font, Bold 
+	GUI, Add, Text, x+1 yp+8 w40 vopwalkSpeedTxt, % Round(walkSpeed*100) "%"
+	GUI, Font
 
-	GUI, Add, Text, xs+10 yp+25 Right w80, Gyro Control:
+	GUI, Add, GroupBox, xs w320 h50, Gyro Control
+	GUI, Add, Text, xs+10 yp+20 Right w80, Gyro Control:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopgyroToggleKey, %gyroToggleKey%
 	GUI, Font, cBlue Underline
 	GUI, Add, Text, x+2 yp+4 gAndroidPhoneLink, <- Use Android Device if Possible
@@ -1009,6 +1016,12 @@ TreeClick:
 		GUIControl, Choose, TabControl, %useSection%
 	}
 Return
+
+WalkSpeedChange:
+	GUIControlGet,tmpSpeed,,opwalkSpeed
+	GUIControl,,opwalkSpeedTxt, %tmpSpeed%`%
+Return
+
 
 MainGUIClose:
 	GUI, Main:Destroy
@@ -1117,6 +1130,7 @@ SubmitAll:
 	IniWrite, % opdownKey, settings.ini, Keyboard Movement>Keys, downKey
 	IniWrite, % oprightKey, settings.ini, Keyboard Movement>Keys, rightKey
 	IniWrite, % opwalkToggleKey, settings.ini, Keyboard Movement>Keys, walkToggleKey
+	IniWrite, % Round(opwalkSpeed/100, 2), settings.ini, Keyboard Movement>Keys, walkSpeed
 	IniWrite, % opgyroToggleKey, settings.ini, Keyboard Movement>Keys, gyroToggleKey
 	; Write Extra Settings
 	IniWrite, % opBotWmouseWheel - 1, settings.ini, Extra Settings, BotWmouseWheel
@@ -1274,6 +1288,7 @@ leftKey=a
 downKey=s
 rightKey=d
 walkToggleKey=Numpad0
+walkSpeed=0.5
 gyroToggleKey=
 BotWmouseWheel=0
 lockZL=0
