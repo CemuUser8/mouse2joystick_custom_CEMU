@@ -79,6 +79,8 @@ leftKey=a
 downKey=s
 rightKey=d
 walkToggleKey=Numpad0
+increaseWalkKey=NumpadAdd
+decreaseWalkKey=NumPadSub
 walkSpeed=0.5
 gyroToggleKey=
 [Extra Settings]
@@ -351,6 +353,10 @@ mouse2joystickHotkeys:
 		SetStick(0,0, True)
 		IF (walkToggleKey)
 			HotKey,%walkToggleKey%,toggleHalf, On
+		IF (decreaseWalkKey)
+			HotKey,%decreaseWalkKey%,decreaseWalk, On
+		IF (increaseWalkKey)
+			HotKey,%increaseWalkKey%,increaseWalk, On
 		IF (lockZLToggleKey AND lockZL)
 			HotKey,%lockZLToggleKey%,toggleAimLock, On
 		IF (BotWmouseWheel) {
@@ -511,6 +517,31 @@ Return
 
 toggleHalf:
 	moveStickHalf := !moveStickHalf
+	KeepStickHowItWas()
+Return
+
+decreaseWalk:
+	walkSpeed -= 0.05
+	IF (walkSpeed < 0)
+		walkSpeed := 0
+	KeepStickHowItWas()
+	IniWrite, % walkSpeed:= Round(walkSpeed, 2), settings.ini, Keyboard Movement>Keys, walkSpeed
+	GUI, Main:Default
+	GUIControl,,opwalkSpeedTxt, % Round(walkSpeed * 100) "%"
+Return
+
+increaseWalk:
+	walkSpeed += 0.05
+	IF (walkSpeed > 1)
+		walkSpeed := 1
+	KeepStickHowItWas()
+	IniWrite, % walkSpeed := Round(walkSpeed, 2), settings.ini, Keyboard Movement>Keys, walkSpeed
+	GUI, Main:Default
+	GUIControl,,opwalkSpeedTxt, % Round(walkSpeed * 100) "%"
+Return
+
+KeepStickHowItWas() {
+	Global moveStickHalf, walkSpeed, upKey, leftKey, downKey, rightKey
 	IF (GetKeyState(downKey, "P"))
 		SetStick("N/A",(moveStickHalf ? -1 * walkSpeed : -1), True)
 	IF (GetKeyState(rightKey, "P"))
@@ -519,7 +550,7 @@ toggleHalf:
 		SetStick((moveStickHalf ? -1 * walkSpeed : -1),"N/A", True)
 	IF (GetKeyState(upKey, "P"))
 		SetStick("N/A",(moveStickHalf ? 1 * walkSpeed : 1), True)
-Return
+}
 
 overwriteUp:
 Critical, On
@@ -967,6 +998,10 @@ GUI, Tab, Keyboard Movement>Keys
 	GUI, Add, GroupBox, xs w320 h80, Walking
 	GUI, Add, Text, xs+10 yp+20 Right w80, Toggle Walk:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopwalkToggleKey, %walkToggleKey%
+	GUI, Add, Text, x+2 yp+3 Right w20, + :
+	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopincreaseWalkKey, %increaseWalkKey%
+	GUI, Add, Text, x+2 yp+3 Right w20, - :
+	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopdecreaseWalkKey, %decreaseWalkKey%
 	GUI, Add, Text, xs+10 yp+35 Right w80, Walking Speed:
 	GUI, Add, Slider, x+2 yp-8 w180 Range0-100 TickInterval10 Thick12 vopwalkSpeed gWalkSpeedChange AltSubmit, % walkSpeed*100
 	GUI, Font, Bold 
@@ -1022,7 +1057,6 @@ WalkSpeedChange:
 	GUIControl,,opwalkSpeedTxt, %tmpSpeed%`%
 Return
 
-
 MainGUIClose:
 	GUI, Main:Destroy
 Return
@@ -1041,6 +1075,10 @@ mainOk:
 	Hotkey, If, (!toggle && mouse2joystick)
 	IF (walkToggleKey)
 		HotKey,%walkToggleKey%,toggleHalf, Off
+	IF (decreaseWalkKey)
+		HotKey,%decreaseWalkKey%,decreaseWalk, Off
+	IF (increaseWalkKey)
+		HotKey,%increaseWalkKey%,increaseWalk, Off
 	IF (lockZLToggleKey AND lockZL)
 		HotKey,%lockZLToggleKey%,toggleAimLock, Off
 	IF (BotWmouseWheel) {
@@ -1130,6 +1168,8 @@ SubmitAll:
 	IniWrite, % opdownKey, settings.ini, Keyboard Movement>Keys, downKey
 	IniWrite, % oprightKey, settings.ini, Keyboard Movement>Keys, rightKey
 	IniWrite, % opwalkToggleKey, settings.ini, Keyboard Movement>Keys, walkToggleKey
+	IniWrite, % opincreaseWalkKey, settings.ini, Keyboard Movement>Keys, increaseWalkKey
+	IniWrite, % opdecreaseWalkKey, settings.ini, Keyboard Movement>Keys, decreaseWalkKey
 	IniWrite, % Round(opwalkSpeed/100, 2), settings.ini, Keyboard Movement>Keys, walkSpeed
 	IniWrite, % opgyroToggleKey, settings.ini, Keyboard Movement>Keys, gyroToggleKey
 	; Write Extra Settings
@@ -1288,6 +1328,8 @@ leftKey=a
 downKey=s
 rightKey=d
 walkToggleKey=Numpad0
+increaseWalkKey=NumpadAdd
+decreaseWalkKey=NumPadSub
 walkSpeed=0.5
 gyroToggleKey=
 BotWmouseWheel=0
