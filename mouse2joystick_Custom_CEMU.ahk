@@ -61,7 +61,7 @@ vXBoxDevice=1
 gameExe=Cemu.exe
 autoActivateGame=1
 [General>Setup]
-r=20
+r=30
 k=0.02
 freq=25
 nnp=.80
@@ -90,6 +90,8 @@ lockZLToggleKey=Numpad1
 hideCursor=1
 BotWmotionAim=0
 useAltMouseMethod=0
+alt_xSen=400
+alt_ySen=280
 )
 	FileAppend,%defaultSettings%,settings.ini
 	IF (ErrorLevel) {
@@ -135,8 +137,6 @@ KeyList := []
 KeyListByNum := []
 
 md := new MouseDelta("MouseEvent")
-xSen := 6
-ySen := 5
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
@@ -1029,8 +1029,13 @@ GUI, Tab, Extra Settings
 	GUI, Add, GroupBox, xs yp+60 w320 h40,Hide Cursor
 	GUI, Add, CheckBox, % "xp+10 yp+20 vophideCursor Checked" . hideCursor, Hide cursor when controller toggled on?
 	
-	GUI, Add, GroupBox, xs yp+30 w320 h40,Alternate Mouse Movement Detection
+	GUI, Add, GroupBox, xs yp+30 w320 h65,Alternate Mouse Movement Detection
 	GUI, Add, CheckBox, % "xp+10 yp+20 vopuseAltMouseMethod Checked" . useAltMouseMethod, Use Mouse Delta? (Experimental)
+	GUI, Add, Text, xs+10 yp+20 w40 Right, X-Sen:
+	GUI, Add, Edit, x+2 yp-3 vopalt_xSen w40, %alt_xSen%
+	GUI, Add, Text, x+10 yp+3 w30 Right, Y-Sen:
+	GUI, Add, Edit, x+2 yp-3 vopalt_ySen w40, %alt_ySen%
+	GUI, Add, Text, x+3 yp+3 w130 Left, Try 260-400? No Idea...
 GUI, Add, StatusBar
 BuildTree("Main", tree)
 Gui, Main: Show
@@ -1178,6 +1183,8 @@ SubmitAll:
 	IniWrite, % oplockZLToggleKey, settings.ini, Extra Settings, lockZLToggleKey
 	IniWrite, % ophideCursor, settings.ini, Extra Settings, hideCursor
 	IniWrite, % opuseAltMouseMethod, settings.ini, Extra Settings, useAltMouseMethod
+	IniWrite, % opalt_xSen, settings.ini, Extra Settings, alt_xSen
+	IniWrite, % opalt_ySen, settings.ini, Extra Settings, alt_ySen
 Return
 
 selectionPath(ID) {
@@ -1314,7 +1321,7 @@ usevXBox=0
 vJoyDevice=1
 vXBoxDevice=1
 autoActivateGame=1
-r=20
+r=30
 k=0.02
 freq=25
 nnp=.80
@@ -1338,6 +1345,8 @@ lockZLToggleKey=Numpad1
 hideCursor=1
 BotWmotionAim=0
 useAltMouseMethod=0
+alt_xSen=400
+alt_ySen=280
 )
 	Loop,Parse,pairsDefault,`n
 	{
@@ -1664,28 +1673,89 @@ InstallUninstallScpVBus(state:="ERROR") {
 ; Gets called when mouse moves
 ; x and y are DELTA moves (Amount moved since last message), NOT coordinates.
 MouseEvent(MouseID, x := 0, y := 0){
-	Global xSen, ySen
+	Global alt_xSen, alt_ySen
+	Static useX, useY, xZero, yZero
+	intv := 1
+	
+	IF (MouseID == "RESET") {
+		useX := useY := 0
+		SetStick(0,0)
+		Return
+	}
+	
+	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
+		useX := 0
+	IF ((y < 0 AND useY > 0) OR (y > 0 AND useY < 0))
+		useY := 0
+	IF (x AND y)
+		intv := 4
+
+	IF (!x)
+		xZero++
+	IF (xZero > 2) {
+		useX := 0
+		xZero := 0
+	}
+	IF (x > 0)
+		useX += intv 
+	Else
+		useX -= intv 
+
+	IF (!y)
+		yZero++
+	IF (yZero > 2) {
+		useY := 0
+		yZero := 0
+	}
+	IF (y > 0)
+		useY += intv 
+	Else
+		useY -= intv 
+		
+	IF (abs(useX)>alt_xSen)
+		useX := useX/abs(useX) * alt_xSen
+	Else IF (abs(x) AND abs(useX) < alt_xSen/4)
+		useX := useX/abs(useX) * alt_xSen/4
+
+	IF (abs(useY)>alt_ySen)
+		useY := useY/abs(useY) * alt_ySen
+	Else IF (abs(y) AND abs(useY) < alt_ySen/4)
+		useY := useY/abs(useY) * alt_ySen/4
+
+	SetStick(useX/alt_xSen,-useY/alt_ySen)
+	Return
+}
+
+MouseEvent_OFF(MouseID, x := 0, y := 0){
+	Global alt_xSen, alt_ySen
 	Static useX, useY
 	IF (MouseID == "RESET") {
 		useX := useY := 0
 		SetStick(0,0)
 		Return
 	}
+	
+	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
+		useX := 0
+	IF ((y < 0 AND useY > 0) OR (y > 0 AND useY < 0))
+		useY := 0
 
 	IF (!x)
 		useX /= 2
-	Else IF (abs(x)>xSen)
-		useX := x/abs(x) * xSen
 	Else
-		useX := x
+		useX += x
+	
+	IF (abs(useX)>alt_xSen)
+		useX := x/abs(x) * alt_xSen
 
 	IF (!y)
 		useY /= 2
-	Else IF (abs(y)>ySen)
-		useY := y/abs(y) * ySen
-	Else
-		useY := y
+	Else 
+		useY += y
+
+	IF (abs(useY)>alt_ySen)
+		useY := y/abs(y) * alt_ySen
 		
-	SetStick(useX/xSen,-useY/ySen)
+	SetStick(useX/alt_xSen,-useY/alt_ySen)
 	Return
 }
