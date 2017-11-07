@@ -12,6 +12,7 @@ Version 0.4.0.0
 
 &nbsp;
 
+[BSoD Gaming made a video](https://youtu.be/aYpdWOdvh3g) that shows how to set this up. It is incomplete, but for the most part it shows the initial process very well. It doesn't get into details about anything, and unnecessarily sets up `Controller 1` and `Controller 2`. The link in the description is to re-hosted files of the 0.4.0.0 version which is current as of the posting of the video, and the inital process rarely changes. (I've asked for the link to be updated to my GitHub, we'll see if he updates it)
 
 ***
 # Initial Setup (Updated to include vXBox images)
