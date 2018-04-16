@@ -12,7 +12,7 @@ Version 0.4.0.0
 
 &nbsp;
 
-[Updated Video - April 5, 2018]  [BSoD Gaming made a video](https://www.youtube.com/watch?v=bOJy67OJfZI) that shows how to set this up. It is incomplete, but for the most part it shows the initial process very well. It doesn't get into details about anything, and unnecessarily sets up `Controller 1` and `Controller 2`. The link in the description is to re-hosted files of the 0.4.0.0 version which is current as of the posting of the video, and the inital process rarely changes. (I've asked for the link to be updated to my GitHub, we'll see if he updates it)
+[Updated Video - April 5, 2018]  [BSoD Gaming made a video](https://www.youtube.com/watch?v=bOJy67OJfZI) that shows how to set this up. It is incomplete, but for the most part it shows the initial process very well. It doesn't get into details about anything, and while it recommends using the alternate mouse movement detection **be aware that this is still experiemtnal** and already implemented slightly different from the version used in the video. Also, changing your mouse sensitvity will only really have an effect with this experimental mode, not really on the normal mode. Along the same lines, the sensitivity he has in the settings are invalid (negative values make no sense with how it is implemented and might even cause issues), but again since he is using the alternate method they have zero effect on the program. 
 
 ***
 # Initial Setup (Updated to include vXBox images)
