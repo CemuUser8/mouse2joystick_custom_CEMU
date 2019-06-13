@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.4.1.0"
+version := "v0.4.1.1"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -160,6 +160,8 @@ Menu,Tray,NoStandard
 IF (!A_IsCompiled) { ; If it is compiled it should just use the EXE Icon
 	IF (A_OSVersion < "10.0.15063") ; It appears that the Icon has changed number on the newest versions of Windows.
 		useIcon := 26
+	Else IF (A_OSVersion >= "10.0.16299")
+		useIcon := 28
 	Else
 		useIcon := 27
 	Try
@@ -1012,7 +1014,7 @@ GUI, Tab, Keyboard Movement>Keys
 	GUI, Add, Text, xs+10 yp+20 Right w80, Gyro Control:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopgyroToggleKey, %gyroToggleKey%
 	GUI, Font, cBlue Underline
-	GUI, Add, Text, x+2 yp+4 gAndroidPhoneLink, <- Use Android Device if Possible
+	GUI, Add, Text, x+2 yp+4 gAndroidPhoneLink, -> Use this method if Possible
 	GUI, Font,
 ;------------------------------------------------------------------------------------------------------------------------------------------
 GUI, Tab, Extra Settings
@@ -1518,7 +1520,7 @@ GetKey() {
 		singleKey := "LCtrl"
 	Else IF (singleKey = "RControl")
 		singleKey := "RCtrl"
-	Else IF (singleKey = ",") ; Comma Doesn't work
+	Else IF (singleKey = "," OR singleKey = "=") ; Comma and equal sign Don't work
 		singleKey := ""
 		
 	GuiControl, Text, %useControl%, %singleKey%
@@ -1714,13 +1716,13 @@ MouseEvent(MouseID, x := 0, y := 0){
 		
 	IF (abs(useX)>alt_xSen)
 		useX := useX/abs(useX) * alt_xSen
-	Else IF (abs(x) AND abs(useX) < alt_xSen/4)
-		useX := useX/abs(useX) * alt_xSen/4
+	Else IF (abs(x) AND abs(useX) < alt_xSen/6)
+		useX := useX/abs(useX) * alt_xSen/6
 
 	IF (abs(useY)>alt_ySen)
 		useY := useY/abs(useY) * alt_ySen
-	Else IF (abs(y) AND abs(useY) < alt_ySen/4)
-		useY := useY/abs(useY) * alt_ySen/4
+	Else IF (abs(y) AND abs(useY) < alt_ySen/6)
+		useY := useY/abs(useY) * alt_ySen/6
 
 	SetStick(useX/alt_xSen,-useY/alt_ySen)
 	Return
