@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.4.1.1"
+version := "v0.4.1.2"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -63,7 +63,7 @@ autoActivateGame=1
 [General>Setup]
 r=30
 k=0.02
-freq=25
+freq=75
 nnp=.80
 [General>Hotkeys]
 controllerSwitchKey=F1
@@ -185,7 +185,7 @@ Menu,Tray,Add,Exit,exitFunc
 Menu,Tray,Default, Settings
 
 IF freq is not Integer
-	freq := 25
+	freq := 75
 
 pmX:=invertedX ? -1:1							; Sign for inverting axis
 pmY:=invertedY ? -1:1
@@ -909,7 +909,8 @@ Extra Settings
 GUI, Main:New, -MinimizeBox, % "Mouse2Joystick Custom for CEMU Settings  -  " . version
 GUI, Add, Text,, Options:
 GUI, Add, TreeView, xm w150 r16 gTreeClick Section
-GUI, Add, Button,xs w150 gMainOk, Ok
+GUI, Add, Button,xs w73 gMainOk, Ok
+GUI, Add, Button,x+4 w73 gMainSave Default, Save
 GUI, Add, Tab2, +Buttons -Theme -Wrap vTabControl ys w320 h0 Section, General|General>Setup|General>Hotkeys|Mouse2Joystick|Mouse2Joystick>Axes|Mouse2Joystick>Keys|Keyboard Movement|Keyboard Movement>Keys|Extra Settings
 GUIControlGet, S, Pos, TabControl ; Store the coords of this section for future use.
 ;------------------------------------------------------------------------------------------------------------------------------------------
@@ -943,11 +944,11 @@ GUI, Tab, General>Setup
 	
 	GUI, Add, GroupBox, xs yp+30 w320 h50, Deadzone
 	GUI, Add, Edit, xs+10 yp+20 w50 vopk gNumberCheck, %k%
-	GUI, Add, Text, x+4 yp+3, Range (0,1)
+	GUI, Add, Text, x+4 yp+3, Range (0 - 1)
 	
 	GUI, Add, GroupBox, xs yp+30 w320 h50, Mouse Check Frequency
 	GUI, Add, Edit, xs+10 yp+20 w50 vopfreq Number, %freq%
-	GUI, Add, Text, x+4 yp+3, This should be low, I recommend 9-32 ( Default:25 )
+	GUI, Add, Text, x+4 yp+3, I recommend 50-100 ( Default:75 )
 ;------------------------------------------------------------------------------------------------------------------------------------------
 GUI, Tab, General>Hotkeys
 	GUI, Add, GroupBox, x%SX% y%SY% w320 h50 Section, Toggle Controller On/Off
@@ -1069,7 +1070,9 @@ MainGUIClose:
 Return
 
 mainOk:
-	Gui, Main: Submit
+	Gui, Main:Hide
+mainSave:
+	Gui, Main:Submit, NoHide
 	Gosub, SubmitAll
 	; Get old hotkeys.
 	; Disable old hotkeys
@@ -1325,7 +1328,7 @@ vXBoxDevice=1
 autoActivateGame=1
 r=30
 k=0.02
-freq=25
+freq=75
 nnp=.80
 controllerSwitchKey=F1
 exitKey=#q
