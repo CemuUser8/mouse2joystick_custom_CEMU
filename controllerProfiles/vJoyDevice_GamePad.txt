@@ -1,13 +1,15 @@
 [General]
 emulate = Wii U GamePad
 api = DirectInput
+controller = 0
 
 [Controller]
-rumble = 0.000000
-leftRange = 1.000000
-rightRange = 1.000000
-leftDeadzone = 0.000000
-rightDeadzone = 0.000000
+rumble = 0
+leftRange = 1
+rightRange = 1
+leftDeadzone = 0
+rightDeadzone = 0
+buttonThreshold = 0.5
 1 = button_1
 2 = button_2
 3 = button_4
