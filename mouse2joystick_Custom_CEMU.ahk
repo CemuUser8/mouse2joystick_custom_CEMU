@@ -1,6 +1,6 @@
 ﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2020-05-05
+;	Last Modified Date: 2020-05-19
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -22,7 +22,7 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.4.1.3"
+version := "v0.4.1.4"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
@@ -37,6 +37,7 @@ SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting director
 CoordMode,Mouse,Screen
 SetMouseDelay,-1
 SetBatchLines,-1
+
 ; On exit
 OnExit("exitFunc")
 
@@ -44,6 +45,7 @@ IF (A_PtrSize < 8) {
 	MsgBox,16,Now Requires 64bit, Starting with Version 0.4.0.0 this program requires 64bit. If you are getting this error you must be running the script directly and have 32bit AutoHotkey installed.`n`nPlease either use the released executable, or change your AutoHotkey installation to the 64bit Unicode version 
 	ExitApp
 }
+
 ;OrigMouseSpeed := ""
 ;DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
 
@@ -137,6 +139,9 @@ KeyList := []
 KeyListByNum := []
 
 md := new MouseDelta("MouseEvent")
+
+ih := InputHook()
+ih.KeyOpt("{All}", "ES")
 
 dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
@@ -1015,7 +1020,7 @@ GUI, Tab, Keyboard Movement>Keys
 	GUI, Add, Text, xs+10 yp+20 Right w80, Gyro Control:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopgyroToggleKey, %gyroToggleKey%
 	GUI, Font, cBlue Underline
-	GUI, Add, Text, x+2 yp+4 gAndroidPhoneLink, -> Use this method if Possible
+	GUI, Add, Text, x+15 yp+4 gAndroidPhoneLink, Click Here For Better Options
 	GUI, Font,
 ;------------------------------------------------------------------------------------------------------------------------------------------
 GUI, Tab, Extra Settings
@@ -1029,16 +1034,19 @@ GUI, Tab, Extra Settings
 	GUI, Add, Text, x+10 Right w80, ZL Lock Key:
 	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 voplockZLToggleKey, %lockZLToggleKey%
 	
-	GUI, Add, GroupBox, xs yp+60 w320 h40,Hide Cursor
+	GUI, Add, GroupBox, xs yp+40 w320 h40,Hide Cursor
 	GUI, Add, CheckBox, % "xp+10 yp+20 vophideCursor Checked" . hideCursor, Hide cursor when controller toggled on?
 	
-	GUI, Add, GroupBox, xs yp+30 w320 h65,Alternate Mouse Movement Detection
+	GUI, Font, cRed Bold
+	GUI, Add, GroupBox, xs yp+30 w320 h65,EXPERIMENTAL Alternate Mouse Detection
+	GUI, Font,
 	GUI, Add, CheckBox, % "xp+10 yp+20 vopuseAltMouseMethod Checked" . useAltMouseMethod, Use Mouse Delta? (Experimental)
 	GUI, Add, Text, xs+10 yp+20 w40 Right, X-Sen:
 	GUI, Add, Edit, x+2 yp-3 vopalt_xSen w40, %alt_xSen%
 	GUI, Add, Text, x+10 yp+3 w30 Right, Y-Sen:
 	GUI, Add, Edit, x+2 yp-3 vopalt_ySen w40, %alt_ySen%
 	GUI, Add, Text, x+3 yp+3 w130 Left, Try 260-400? No Idea...
+
 GUI, Add, StatusBar
 BuildTree("Main", tree)
 Gui, Main: Show
@@ -1183,6 +1191,8 @@ SubmitAll:
 	IniWrite, % Round(opwalkSpeed/100, 2), settings.ini, Keyboard Movement>Keys, walkSpeed
 	IniWrite, % opgyroToggleKey, settings.ini, Keyboard Movement>Keys, gyroToggleKey
 	; Write Extra Settings
+	IF (RegexMatch(opjoystickButtonKeyList, "i)wheel(down|up)")) ; If wheeldown/up is part of the keylist you cannot use the special wheel functions for BotW
+		opBotWmouseWheel := 1
 	IniWrite, % opBotWmouseWheel - 1, settings.ini, Extra Settings, BotWmouseWheel
 	IniWrite, % oplockZL- 1, settings.ini, Extra Settings, lockZL
 	IniWrite, % oplockZLToggleKey, settings.ini, Extra Settings, lockZLToggleKey
@@ -1510,21 +1520,17 @@ GetKey() {
 	MousePressed := False
 	GUIControl, -E0x200, %useControl%
 	GuiControl,Text, %useControl%, Waiting
-	Input, singleKey, L1, {Tab}{Enter}{Space}{LCtrl}{RCtrl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}{AppsKey}{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{F9}{F10}{F11}{F12}{Left}{Right}{Up}{Down}{Home}{End}{PgUp}{PgDn}{Del}{Ins}{BS}{Capslock}{Numlock}{PrintScreen}{Pause}{Esc}{NumPad1}{NumPad2}{NumPad3}{NumPad4}{NumPad5}{NumPad6}{NumPad7}{NumPad8}{NumPad9}{NumPad0}{NumPadDiv}{NumPadMult}{NumPadAdd}{NumPadSub}{NumPadEnter}{NumpadDot}
+	ih.Start()
+	ErrorLevel := ih.Wait()
+	singleKey := ih.EndKey
 	GoSub, TurnOff
-	IF (InStr(ErrorLevel, "EndKey:"))
-		singleKey := SubStr(ErrorLevel, 8)
-	Else
-		singleKey := Format("{:Ls}", singleKey)
 	
 	IF (MousePressed)
 		singleKey := MousePressed
-	Else IF (singleKey = "LControl")
-		singleKey := "LCtrl"
-	Else IF (singleKey = "RControl")
-		singleKey := "RCtrl"
 	Else IF (singleKey = "," OR singleKey = "=") ; Comma and equal sign Don't work
 		singleKey := ""
+	
+	singleKey := RegexReplace(singleKey, "Control", "Ctrl")
 		
 	GuiControl, Text, %useControl%, %singleKey%
 	GUIControl, +E0x200, %useControl%
@@ -1534,14 +1540,13 @@ GetKey() {
 		IF (tempKey = singleKey AND useControl != "Edit" . A_Index)
 			GuiControl, Text, Edit%A_Index%,
 	}
-Return
+Return singleKey
 }
 
 WM_LBUTTONDOWN() {
 	Global useControl, MousePressed
 	Send, {Esc}
 	MousePressed := "LButton"
-	GoSub, TurnOff
 	Return 0
 }
 
@@ -1549,7 +1554,6 @@ WM_RBUTTONDOWN() {
 	Global useControl, MousePressed
 	Send, {Esc}
 	MousePressed := "RButton"
-	GoSub, TurnOff
 	Return 0
 }
 
@@ -1557,7 +1561,6 @@ WM_MBUTTONDOWN() {
 	Global useControl, MousePressed
 	Send, {Esc}
 	MousePressed := "MButton"
-	GoSub, TurnOff
 	Return 0
 }
 
@@ -1569,8 +1572,29 @@ WM_XBUTTONDOWN(w) {
 		MousePressed := "XButton1"
 	Else IF((w & 0xFF) = 0x40)
 		MousePressed := "XButton2"
-	
-	GoSub, TurnOff
+	Return 0
+}
+
+WM_MOUSEHWHEEL(w) {
+	Global useControl, MousePressed
+	Send, {Esc}
+	SetFormat, IntegerFast, Hex
+	IF ((w & 0xFF0000) = 0x780000)
+		MousePressed := "WheelRight"
+	Else IF((w & 0xFF0000) = 0x880000)
+		MousePressed := "WheelLeft"
+	Return 0
+}
+
+WM_MOUSEWHEEL(w) {
+	Global useControl, MousePressed
+	Send, {Esc}
+	SetFormat, IntegerFast, Hex
+	MousePressed := "" . w + 0x0
+	IF ((w & 0xFF0000) = 0x780000)
+		MousePressed := "WheelUp"
+	Else IF((w & 0xFF0000) = 0x880000)
+		MousePressed := "WheelDown"
 	Return 0
 }
 
@@ -1579,6 +1603,10 @@ OnMessage(0x0201, "WM_LBUTTONDOWN")
 OnMessage(0x0204, "WM_RBUTTONDOWN")
 OnMessage(0x0207, "WM_MBUTTONDOWN")
 OnMessage(0x020B, "WM_XBUTTONDOWN")
+OnMessage(0x020E, "WM_MOUSEHWHEEL")
+GUIControlGet, TempBotWmouseWheel,Main:,opBotWmouseWheel
+IF (TempBotWmouseWheel) ; If this control is a 1, then BotW mousewheel is off and mouse wheel can be used as a key.
+	OnMessage(0x020A, "WM_MOUSEWHEEL")
 Return
 
 TurnOff:
@@ -1586,6 +1614,8 @@ OnMessage(0x0201, "")
 OnMessage(0x0204, "")
 OnMessage(0x0207, "")
 OnMessage(0x020B, "")
+OnMessage(0x020E, "")
+OnMessage(0x020A, "")
 Return
 
 ;-------------------------------------------------------------------------------
