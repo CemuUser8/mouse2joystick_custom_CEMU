@@ -29,6 +29,7 @@ SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting director
 ;#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
 #Include CvJI/CvGenInterface.ahk ; A Modifed Interface that I (CemuUser8) added the vXBox device and functions to.
 #Include CvJI/MouseDelta.ahk ; Alternate way to see mouse movement
+#Include CvJI/SelfDeletingTimer.ahk
 ; Settings
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
@@ -403,6 +404,8 @@ Return
 pressJoyButton:
 	keyName:=A_ThisHotkey
 	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
+	If InStr(keyName, "wheel")
+		new SelfDeletingTimer(100, "ReleaseWheel", joyButtonNumber)
 	IF (!vXBox){
 		IF (joyButtonNumber = 7 AND lockZL) {
 			IF (ZLToggle)
@@ -418,32 +421,85 @@ pressJoyButton:
 			vstick.SetBtn(1,joyButtonNumber)
 	}
 	Else {
-		IF (joyButtonNumber = 7) {
+		Switch joyButtonNumber
+		{
+		Case 7:
 			IF (lockZL AND ZLToggle)
 				vstick.SetAxisByIndex(0,6)
 			Else
 				vstick.SetAxisByIndex(100,6)
-		}
-		Else IF (joyButtonNumber = 8)
+			return
+		Case 8:
 			vstick.SetAxisByIndex(100,3)
-		Else IF (joyButtonNumber = 9)
+			return
+		Case 9:
 			vstick.SetBtn(1,joyButtonNumber-1)
-		Else IF (joyButtonNumber = 10)
+			return
+		Case 10:
 			vstick.SetBtn(1,joyButtonNumber-3)
-		Else IF (joyButtonNumber = 11 OR joyButtonNumber = 12)
+			return
+		Case 11,12:
 			vstick.SetBtn(1,joyButtonNumber-2)
-		Else IF (joyButtonNumber = 13)
+			return
+		Case 13:
 			vstick.SetPOV(0)
-		Else IF (joyButtonNumber = 14)
+			return
+		Case 14:
 			vstick.SetPOV(180)
-		Else IF (joyButtonNumber = 15)
+			return
+		Case 15:
 			vstick.SetPOV(270)
-		Else IF (joyButtonNumber = 16)
+			return
+		Case 16:
 			vstick.SetPOV(90)
-		Else
+			return
+		Default:
 			vstick.SetBtn(1,joyButtonNumber)
+			return
+		}
 	}
 Return
+
+ReleaseWheel(keyNum) { ; This is duplicated of the label below, it had to be added so I could release mouse wheel keys as they don't fire Up keystrokes.
+	Global
+	IF (!vXBox){
+		IF (keyNum = 7 AND lockZL) {
+			IF (ZLToggle)
+				vstick.SetBtn(1,keyNum)
+			Else
+				vstick.SetBtn(0,keyNum)
+		}
+		Else IF (keyNum = 8 AND BotWmotionAim) {
+			vstick.SetBtn(0,keyNum)
+			GoSub, GyroControlOff
+		}
+		Else IF (keyNum)
+			vstick.SetBtn(0,keyNum)
+	}
+	Else {
+		Switch keyNum
+		{
+			Case 7:
+				IF (lockZL AND ZLToggle)
+					vstick.SetAxisByIndex(100,6)
+				Else
+					vstick.SetAxisByIndex(0,6)
+			Case 8:
+				vstick.SetAxisByIndex(0,3)
+			Case 9:
+				vstick.SetBtn(0,keyNum-1)
+			Case 10:
+				vstick.SetBtn(0,keyNum-3)
+			Case 11,12:
+				vstick.SetBtn(0,keyNum-2)
+			Case 13,14,15,16:
+				vstick.SetPOV(-1)
+			Default:
+				vstick.SetBtn(0,keyNum)
+		}
+	}
+	Return
+}
 
 releaseJoyButton:
 	keyName:=RegExReplace(A_ThisHotkey," Up$")
@@ -463,24 +519,26 @@ releaseJoyButton:
 			vstick.SetBtn(0,joyButtonNumber)
 	}
 	Else {
-		IF (joyButtonNumber = 7) {
-			IF (lockZL AND ZLToggle)
-				vstick.SetAxisByIndex(100,6)
-			Else
-				vstick.SetAxisByIndex(0,6)
+		Switch joyButtonNumber
+		{
+			Case 7:
+				IF (lockZL AND ZLToggle)
+					vstick.SetAxisByIndex(100,6)
+				Else
+					vstick.SetAxisByIndex(0,6)
+			Case 8:
+				vstick.SetAxisByIndex(0,3)
+			Case 9:
+				vstick.SetBtn(0,joyButtonNumber-1)
+			Case 10:
+				vstick.SetBtn(0,joyButtonNumber-3)
+			Case 11,12:
+				vstick.SetBtn(0,joyButtonNumber-2)
+			Case 13,14,15,16:
+				vstick.SetPOV(-1)
+			Default:
+				vstick.SetBtn(0,joyButtonNumber)
 		}
-		Else IF (joyButtonNumber = 8)
-			vstick.SetAxisByIndex(0,3)
-		Else IF (joyButtonNumber = 9)
-			vstick.SetBtn(0,joyButtonNumber-1)
-		Else IF (joyButtonNumber = 10)
-			vstick.SetBtn(0,joyButtonNumber-3)
-		Else IF (joyButtonNumber = 11 OR joyButtonNumber = 12)
-			vstick.SetBtn(0,joyButtonNumber-2)
-		Else IF (joyButtonNumber = 13 OR joyButtonNumber = 14 OR joyButtonNumber = 15 OR joyButtonNumber = 16)
-			vstick.SetPOV(-1)
-		Else
-			vstick.SetBtn(0,joyButtonNumber)
 	}
 Return
 
