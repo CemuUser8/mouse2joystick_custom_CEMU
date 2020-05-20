@@ -1,6 +1,16 @@
-# Script last updated on October 25, 2017.
-Version 0.4.0.0
+# Script last updated on May 20, 2020.
+Version 0.4.1.4
 
+ * Added ability to map the mouse wheel to keys in the keylist helper
+ 	* Keys can't be used to hold down buttons, since wheels don't send an UP keystroke like all the other keys.
+ * Added a Save button to the settings, so you can save and apply your settings without closing the window. This should make it easier to tweak and play with settings while testing.
+ * Added ability to adjust the walking speed, no longer set to 50%. [Keybinds work on the fly as you are moving.](https://imgur.com/25brjqd)
+ 	* You can change the speed by setting and pressing the `+` and `-` keybinds
+ * I believe I have finally fixed the controller profiles for the Wii U Pro Controller for both vJoy and vXbox.
+
+&nbsp;
+
+Older Changes:
  * Completely re-wrote settings code
  	* Allows me to more easily manage adding and/or changing the settings for the script
  * [Added ability to save keylists](https://i.imgur.com/E6Bualc.png), in pretty much the exact way CEMU lets you manage Controller Profiles
