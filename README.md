@@ -2,7 +2,7 @@
 Version 0.4.1.4
 
  * Added ability to map the mouse wheel to keys in the keylist helper
- 	* Keys can't be used to hold down buttons, since wheels don't send an UP keystroke like all the other keys.
+ 	* Wheel keys can't be used to hold down buttons, since wheels don't send an UP keystroke like all the other keys.
  * Added a Save button to the settings, so you can save and apply your settings without closing the window. This should make it easier to tweak and play with settings while testing.
  * Added ability to adjust the walking speed, no longer set to 50%. [Keybinds work on the fly as you are moving.](https://imgur.com/25brjqd)
  	* You can change the speed by setting and pressing the `+` and `-` keybinds
