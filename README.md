@@ -60,7 +60,7 @@ Older Changes:
 ***
 # Using the Script and changing the key mapping
 ***
-1. Visit the [GitHub release page](https://github.com/CemuUser8/mouse2joystick_custom_CEMU/releases) and download the latest release (0.3.0.0 currently)
+1. Visit the [GitHub release page](https://github.com/CemuUser8/mouse2joystick_custom_CEMU/releases) and download the latest release (0.4.1.4 currently)
 2. Launch the script:
 	* Double click the `.ahk` file if you have AutoHotKey installed.
 	* Run the exe if you don't. 
