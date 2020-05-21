@@ -30,7 +30,7 @@ Older Changes:
 1. Install the latest [vJoy](https://sourceforge.net/projects/vjoystick/files/latest/download) 
 2. Run the [vJoy Configuration](http://i.imgur.com/vvHW0yz.png) (Not necessary if you only plan on using vXBox)
 	* Set it up so it has **at least 18 Buttons**, I set mine to 32.
-3. 	[Download controller profiles](https://bitbucket.org/CemuUser8/files/downloads/vJoyControllerProfiles.zip)  for CEMU > 1.9.0   &nbsp;&nbsp;&nbsp;&nbsp; *(Also included in GitHub release zip)*
+3. 	[Download controller profiles](https://bitbucket.org/CemuUser8/files/downloads/controllerProfiles.zip)  for CEMU > 1.9.0   &nbsp;&nbsp;&nbsp;&nbsp; *(Also included in GitHub release zip)*
 	* Extract these text files into your [CEMU controllerProfiles folder](https://i.imgur.com/Mf5L6km.png)
 4. Then open CEMU and goto the [input settings](http://i.imgur.com/N5Nibtq.png)
 	* Choose the type of controller you want to use, [either 'Wii U Pro Controller' or 'Wii U GamePad'](http://i.imgur.com/sfKWlgu.png)
