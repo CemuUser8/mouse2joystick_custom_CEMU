@@ -1,0 +1,38 @@
+[General]
+emulate = Wii U GamePad
+api = DirectInput
+controller = 7FB6EEE0-9532-11EA-800C-444553540000
+
+[Controller]
+rumble = 0
+leftRange = 1
+rightRange = 1
+leftDeadzone = 0
+rightDeadzone = 0
+buttonThreshold = 0.5
+1 = button_1
+2 = button_2
+3 = button_4
+4 = button_8
+5 = button_10
+6 = button_20
+7 = button_100000000
+8 = button_4000000000
+9 = button_80
+10 = button_40
+11 = button_4000000
+12 = button_8000000
+13 = button_10000000
+14 = button_20000000
+15 = button_100
+16 = button_200
+17 = button_2000000000
+18 = button_80000000
+19 = button_1000000000
+20 = button_40000000
+21 = button_10000000000
+22 = button_400000000
+23 = button_8000000000
+24 = button_200000000
+25 = key_66
+26 = key_191

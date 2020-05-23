@@ -1,6 +1,34 @@
-﻿;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
+﻿/*
+ * * * Compile_AHK SETTINGS BEGIN * * *
+
+[AHK2EXE]
+Exe_File=%In_Dir%\mouse2joystick_Custom_CEMU.exe
+Alt_Bin=C:\Program Files\AutoHotkey\Compiler\Unicode 64-bit.bin
+No_UPX=1
+[VERSION]
+Set_Version_Info=1
+Company_Name=Cemu User8
+File_Description=mouse2joystick_custom_CEMU
+File_Version=0.5.0.0
+Inc_File_Version=0
+Internal_Name=mouse2joystick_custom_CEMU
+Legal_Copyright=N/A
+Original_Filename=mouse2joystick_Custom_CEMU.ahk
+Product_Name=mouse2joystick_Custom_CEMU
+Product_Version=0.5.0.0
+[ICONS]
+Icon_1=%In_Dir%\mouse2joystick_Custom_CEMU.ico
+Icon_2=%In_Dir%\mouse2joystick_Custom_CEMU.ico
+Icon_3=%In_Dir%\mouse2joystick_Custom_CEMU.ico
+Icon_4=0
+Icon_5=0
+
+* * * Compile_AHK SETTINGS END * * *
+*/
+
+;	;	;	;	;	;	;	;	;	;	;	;	;	;	;	;
 ;	Modified for CEMU by: CemuUser8 (https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/)
-;	Last Modified Date: 2020-05-19
+;	Last Modified Date: 2020-05-23
 ; 
 ;	Original Author: Helgef
 ;	Date: 2016-08-17
@@ -22,14 +50,12 @@
 ;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
 ;			evilC did the CvJoyInterface.ahk
 ;
-version := "v0.4.1.4"
+version := "v0.5.0.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
-;#Include CvJI/CvJoyInterface.ahk										; Credit to evilC.
-#Include CvJI/CvGenInterface.ahk ; A Modifed Interface that I (CemuUser8) added the vXBox device and functions to.
-#Include CvJI/MouseDelta.ahk ; Alternate way to see mouse movement
-#Include CvJI/SelfDeletingTimer.ahk
+#include Lib\AHK-ViGEm-Bus.ahk
+#Include Lib\SelfDeletingTimer.ahk
 ; Settings
 #MaxHotkeysPerInterval 210
 #HotkeyInterval 1000
@@ -47,9 +73,6 @@ IF (A_PtrSize < 8) {
 	ExitApp
 }
 
-;OrigMouseSpeed := ""
-;DllCall("SystemParametersInfo", UInt, 0x70, UInt, 0, UIntP, OrigMouseSpeed, UInt, 0) ; Get Original Mouse Speed.
-
 toggle:=1													; On/off parameter for the hotkey.	Toggle 0 means controller is on. The placement of this variable is disturbing.
 
 ; If no settings file, create, When changing this, remember to make corresponding changes after the setSettingsToDefault label (error handling) ; Currently at bottom of script
@@ -58,9 +81,7 @@ IfNotExist, settings.ini
 	defaultSettings=
 (
 [General]
-usevXBox=0
-vJoyDevice=1
-vXBoxDevice=1
+usevXBox=1
 gameExe=Cemu.exe
 autoActivateGame=1
 [General>Setup]
@@ -85,16 +106,11 @@ walkToggleKey=Numpad0
 increaseWalkKey=NumpadAdd
 decreaseWalkKey=NumPadSub
 walkSpeed=0.5
-gyroToggleKey=
 [Extra Settings]
 BotWmouseWheel=0
 lockZL=0
 lockZLToggleKey=Numpad1
 hideCursor=1
-BotWmotionAim=0
-useAltMouseMethod=0
-alt_xSen=400
-alt_ySen=280
 )
 	FileAppend,%defaultSettings%,settings.ini
 	IF (ErrorLevel) {
@@ -139,12 +155,13 @@ moveStickHalf := False
 KeyList := []
 KeyListByNum := []
 
-md := new MouseDelta("MouseEvent")
+ButtonIndexes := {} ; This will change depending on if the user is using vXBox, or vPS4.
+Global vstick := ""
+vPS4stick := new ViGEmDS4()
+vXBoxstick := new ViGEmXb360()
 
 ih := InputHook()
 ih.KeyOpt("{All}", "ES")
-
-dr:=0											; Bounce back when hit outer circle edge, in pixels. (This might not work any more, it is off) Can be seen as a force feedback parameter, can be extended to depend on the over extension beyond the outer ring.
 
 ; Hotkey(s).
 IF (controllerSwitchKey)
@@ -152,11 +169,9 @@ IF (controllerSwitchKey)
 IF (exitKey)
 	Hotkey,%exitKey%,exitFunc, on
 
-mouse2joystick := True
-IF (mouse2joystick) {
-	Gosub, initCvJoyInterface
-	Gosub, mouse2joystickHotkeys
-}
+Gosub, initCvJoyInterface
+Gosub, mouse2joystickHotkeys
+
 
 ; Icon
 Menu,Tray,Tip, mouse2joystick Customized for CEMU
@@ -176,16 +191,9 @@ IF (!A_IsCompiled) { ; If it is compiled it should just use the EXE Icon
 ;Menu,Settings,openSettings
 Menu,Tray,Add,Settings,openSettings
 Menu,Tray,Add,
-IF (vGenInterface.IsVBusExist())
-	Menu,Tray,Add,Uninstall ScpVBus, uninstallBus
-Else
-	Menu,Tray,Add,Install ScpVBus, installBus
-Menu,Tray,Add,
-Menu,Tray,Add,Reset to CEMU, selectGameMenu
-Menu,Tray,Add
 Menu,Tray,Add,About,aboutMenu
 Menu,Tray,Add,Help,helpMenu
-Menu,Tray,Add
+Menu,Tray,Add,
 Menu,Tray,Add,Reload,reloadMenu
 Menu,Tray,Add,Exit,exitFunc
 Menu,Tray,Default, Settings
@@ -193,8 +201,6 @@ Menu,Tray,Default, Settings
 IF freq is not Integer
 	freq := 75
 
-pmX:=invertedX ? -1:1							; Sign for inverting axis
-pmY:=invertedY ? -1:1
 snapToFullTilt:=0.005							; This needs to be improved.
 ;nnp:=4	 										; Non-linearity parameter for joystick output, 1 = linear, >1 higher sensitivity closer to full tilt, <1 higher sensitivity closer to deadzone. Recommended range, [0.1,6]. 
 ; New parameters
@@ -208,16 +214,8 @@ Gui, Controller: Color, FFFFFF
 ; Spam user with useless info, first time script runs.
 IF (firstRun)
 	MsgBox,64,Welcome,Settings are accessed via Tray icon -> Settings.
-
-
 Return
 ; End autoexec.
-
-selectGameMenu:
-	TrayTip, % "Game reset to cemu.exe", % "If you want something different manually edit the settings, or 'settings.ini' file directly",,0x10
-	gameExe := "cemu.exe"
-	IniWrite, %gameExe%, settings.ini, General, gameExe
-Return
 
 reloadMenu:
 	Reload
@@ -228,61 +226,27 @@ aboutMenu:
 Return
 
 helpMenu:
-	Msgbox,% 4 + 32 , Open help in browser?, Visit Reddit post on /r/cemu for help?`n`nIt is helpful to know the version (%version%)`nand If possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
+	Msgbox,% 4 + 32 , Open help in browser?, Visit GitHub page for help?`n`nIt is helpful to know the version (%version%)`nand If possible a pastebin of your 'settings.ini' file will help me troubleshoot.`n`nWill Open link in default browser.
 	IfMsgBox Yes
-		Run, https://www.reddit.com/r/cemu/comments/5zn0xa/autohotkey_script_to_use_mouse_for_camera/
+		Run, https://github.com/CemuUser8/mouse2joystick_custom_CEMU/tree/master
 Return
 
 initCvJoyInterface:
-	Global vXBox := usevXBox
-	; Copied from joytest.ahk, from CvJoyInterface by evilC
-	; Create an object from vJoy Interface Class.
-	vGenInterface := new CvGenInterface()
-	; Was vJoy installed and the DLL Loaded?
-	IF (!vGenInterface.vJoyEnabled()){
-		; Show log of what happened
-		Msgbox,% 4+16,vJoy Error,% "vJoy needs to be installed. Press no to exit application.`nLog:`n" . vGenInterface.LoadLibraryLog ; Error handling changed.
-		IfMsgBox Yes
-		{
-			;IniWrite, 0,settings.ini,General,mouse2joystick
-			reload
-		}
-		ExitApp
-	}
-	IF (vXBox AND !vGenInterface.IsVBusExist()) {
-		Msgbox,% 4 + 32 , Virtual xBox Bus not found, Press Yes If you would like to install ScpVBus, otherwise script will revert back to vJoy instead of vXBox.`n`nScript will reload after installing.
-		IfMsgBox Yes
-			InstallUninstallScpVBus(True)
-		Else {
-			vXBox := False
-			IniWrite,0, settings.ini, General, usevXBox ; Turn off the setting for the next run as well.
-		}
-	}
-	ValidDevices := ""
-	Loop 15 {
-		IF (vGenInterface.Devices[A_Index].IsAvailable())
-			ValidDevices .= A_Index . "|"
-	}
+	Global vXBox := usevXBox, vPS4 := !usevXbox
+	
 	IF (vXBox) {
-		IF (vXboxDevice != vstick.DeviceID OR !vstick.GetLedNumber()) {
-			IF (isObject(vstick)) {
-				vstick.Unplug()
-				vstick.Relinquish()
-			}
-			;vGenInterface.UnPlugAll() ; Not sure how this interacts when a real controller is also plugged in. But I seem to notice that there is an issue if not ran.
-			Global vstick := vGenInterface.xDevices[vXBoxDevice]
-			vstick.Acquire()
-			TrayTip,, % "Controller #" vstick.GetLedNumber() 
-		}
+		ButtonIndexes :=  {1:"A", 2:"B", 3:"X", 4:"Y", 5:"LB", 6:"RB", 9:"Start", 10:"Back", 11:"LS", 12:"RS", 17:"Xbox"} ; 13,14,15,16 are the Dpad buttons
+		vstick := vXBoxstick
+		pmX:=invertedX ? -1:1
+		pmY:=invertedY ? -1:1
+	}
+	Else IF (vPS4) {
+		ButtonIndexes :=  {1:"Cross", 2:"Circle", 3:"Square", 4: "Triangle", 5:"L1", 6:"R1", 9:"Options", 10:"Share", 11:"LS", 12:"RS", 17:"Ps", 18:"L2", 19:"R2", 20:"TouchPad"} ; 13, 14, 15, 16 are the Dpad buttons
+		vstick := vPS4stick
+		pmX:=invertedX ? -1:1
+		pmY:=invertedY ? 1:-1
+	}
 
-	}
-	Else {
-		IF (isObject(vstick)) {
-			vstick.Unplug()
-			vstick.Relinquish()
-		}
-		Global vstick := vGenInterface.Devices[vJoyDevice]
-	}
 Return
 
 ; Hotkey labels
@@ -324,29 +288,18 @@ controllerSwitch:
 		
 		IF (hideCursor)
 			show_Mouse(False)
-		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)
-		
-		IF (useAltMouseMethod) {
-			md.Start()
-			LockMouseToWindow("ahk_id " . stick)
-		}
-		Else
-			SetTimer,mouseTojoystick,%freq%
+
+		SetTimer,mouseTojoystick,%freq%
 
 	}
 	Else {	; Shutting down controller
-		setStick(0,0)															; Stick in equilibrium.
+		setStick(0,0)			; Stick in equilibrium.
 		setStick(0,0, True)
-		IF (useAltMouseMethod) {
-			LockMouseToWindow(False)
-			md.Stop()
-		}
-		Else
-			SetTimer,mouseTojoystick,Off
+
+		SetTimer,mouseTojoystick,Off
 		
 		IF (hideCursor)
 			show_Mouse()				; No need to show cursor if not hidden.
-		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 		Gui, Controller:Hide
 	
 	}
@@ -354,10 +307,11 @@ controllerSwitch:
 Return
 
 ; Hotkeys mouse2joystick
-#IF (!toggle && mouse2joystick)
+#IF (!toggle)
 #IF
 mouse2joystickHotkeys:
-	Hotkey, IF, (!toggle && mouse2joystick)
+	Hotkey, IF, (!toggle)
+		SetStick(0,0)
 		SetStick(0,0, True)
 		IF (walkToggleKey)
 			HotKey,%walkToggleKey%,toggleHalf, On
@@ -371,10 +325,7 @@ mouse2joystickHotkeys:
 			Hotkey,WheelUp, overwriteWheelUp, on
 			Hotkey,WheelDown, overwriteWheelDown, on
 		}
-		IF (gyroToggleKey) {
-			HotKey,%gyroToggleKey%, GyroControl, on
-			HotKey,%gyroToggleKey% Up, GyroControlOff, on
-		}
+
 		Hotkey,%upKey%, overwriteUp, on 
 		Hotkey,%upKey% Up, overwriteUpup, on
 		Hotkey,%leftKey%, overwriteLeft, on 
@@ -403,181 +354,89 @@ Return
 ; Labels for pressing and releasing joystick buttons.
 pressJoyButton:
 	keyName:=A_ThisHotkey
-	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	If InStr(keyName, "wheel")
-		new SelfDeletingTimer(100, "ReleaseWheel", joyButtonNumber)
-	IF (!vXBox){
-		IF (joyButtonNumber = 7 AND lockZL) {
-			IF (ZLToggle)
-				vstick.SetBtn(0,joyButtonNumber)
-			Else
-				vstick.SetBtn(1,joyButtonNumber)
-		}
-		Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
-			GoSub, GyroControl
-			vstick.SetBtn(1,joyButtonNumber)
-		}
-		Else IF (joyButtonNumber)
-			vstick.SetBtn(1,joyButtonNumber)
-	}
-	Else {
-		Switch joyButtonNumber
-		{
-		Case 7:
-			IF (lockZL AND ZLToggle)
-				vstick.SetAxisByIndex(0,6)
-			Else
-				vstick.SetAxisByIndex(100,6)
-			return
-		Case 8:
-			vstick.SetAxisByIndex(100,3)
-			return
-		Case 9:
-			vstick.SetBtn(1,joyButtonNumber-1)
-			return
-		Case 10:
-			vstick.SetBtn(1,joyButtonNumber-3)
-			return
-		Case 11,12:
-			vstick.SetBtn(1,joyButtonNumber-2)
-			return
-		Case 13:
-			vstick.SetPOV(0)
-			return
-		Case 14:
-			vstick.SetPOV(180)
-			return
-		Case 15:
-			vstick.SetPOV(270)
-			return
-		Case 16:
-			vstick.SetPOV(90)
-			return
-		Default:
-			vstick.SetBtn(1,joyButtonNumber)
-			return
-		}
+	joyButtonNumber := KeyList[keyName]
+	IF (InStr(keyName, "wheel"))
+		new SelfDeletingTimer(100,"ReleaseWheel", joyButtonNumber)
+	Switch joyButtonNumber
+	{
+	Case 7:
+		IF (ZLToggle AND lockZL)
+			vstick.Axes.LT.SetState(0)
+		Else
+			vstick.Axes.LT.SetState(100)
+		Return
+	Case 8:
+		vstick.Axes.RT.SetState(100)
+		Return
+	Case 13:
+		vstick.Dpad.SetState("Up")
+		return
+	Case 14:
+		vstick.Dpad.SetState("Down")
+		return
+	Case 15:
+		vstick.Dpad.SetState("Left")
+		return
+	Case 16:
+		vstick.Dpad.SetState("Right")
+		return
+	Default:
+		vstick.Buttons[ButtonIndexes[joyButtonNumber]].SetState(true)
+		Return
 	}
 Return
 
 ReleaseWheel(keyNum) { ; This is duplicated of the label below, it had to be added so I could release mouse wheel keys as they don't fire Up keystrokes.
 	Global
-	IF (!vXBox){
-		IF (keyNum = 7 AND lockZL) {
-			IF (ZLToggle)
-				vstick.SetBtn(1,keyNum)
-			Else
-				vstick.SetBtn(0,keyNum)
-		}
-		Else IF (keyNum = 8 AND BotWmotionAim) {
-			vstick.SetBtn(0,keyNum)
-			GoSub, GyroControlOff
-		}
-		Else IF (keyNum)
-			vstick.SetBtn(0,keyNum)
+	Switch keyNum
+	{
+	Case 7:
+		IF (ZLToggle AND lockZL)
+			vstick.Axes.LT.SetState(100)
+		Else
+			vstick.Axes.LT.SetState(0)
+		Return
+	Case 8:
+		vstick.Axes.RT.SetState(0)
+		Return
+	Case 13,14,15,16:
+		vstick.Dpad.SetState("None")
+		return
+	Default:
+		vstick.Buttons[ButtonIndexes[keyNum]].SetState(false)
+		Return
 	}
-	Else {
-		Switch keyNum
-		{
-			Case 7:
-				IF (lockZL AND ZLToggle)
-					vstick.SetAxisByIndex(100,6)
-				Else
-					vstick.SetAxisByIndex(0,6)
-			Case 8:
-				vstick.SetAxisByIndex(0,3)
-			Case 9:
-				vstick.SetBtn(0,keyNum-1)
-			Case 10:
-				vstick.SetBtn(0,keyNum-3)
-			Case 11,12:
-				vstick.SetBtn(0,keyNum-2)
-			Case 13,14,15,16:
-				vstick.SetPOV(-1)
-			Default:
-				vstick.SetBtn(0,keyNum)
-		}
-	}
-	Return
+Return
 }
 
 releaseJoyButton:
 	keyName:=RegExReplace(A_ThisHotkey," Up$")
-	joyButtonNumber := KeyList[keyName] ; joyButtonNumber:=A_Index
-	IF (!vXBox){
-		IF (joyButtonNumber = 7 AND lockZL) {
-			IF (ZLToggle)
-				vstick.SetBtn(1,joyButtonNumber)
-			Else
-				vstick.SetBtn(0,joyButtonNumber)
-		}
-		Else IF (joyButtonNumber = 8 AND BotWmotionAim) {
-			vstick.SetBtn(0,joyButtonNumber)
-			GoSub, GyroControlOff
-		}
-		Else IF (joyButtonNumber)
-			vstick.SetBtn(0,joyButtonNumber)
-	}
-	Else {
-		Switch joyButtonNumber
-		{
-			Case 7:
-				IF (lockZL AND ZLToggle)
-					vstick.SetAxisByIndex(100,6)
-				Else
-					vstick.SetAxisByIndex(0,6)
-			Case 8:
-				vstick.SetAxisByIndex(0,3)
-			Case 9:
-				vstick.SetBtn(0,joyButtonNumber-1)
-			Case 10:
-				vstick.SetBtn(0,joyButtonNumber-3)
-			Case 11,12:
-				vstick.SetBtn(0,joyButtonNumber-2)
-			Case 13,14,15,16:
-				vstick.SetPOV(-1)
-			Default:
-				vstick.SetBtn(0,joyButtonNumber)
-		}
+	joyButtonNumber := KeyList[keyName]
+	Switch joyButtonNumber
+	{
+	Case 7:
+		IF (ZLToggle AND lockZL)
+			vstick.Axes.LT.SetState(100)
+		Else
+			vstick.Axes.LT.SetState(0)
+		Return
+	Case 8:
+		vstick.Axes.RT.SetState(0)
+		Return
+	Case 13,14,15,16:
+		vstick.Dpad.SetState("None")
+		return
+	Default:
+		vstick.Buttons[ButtonIndexes[joyButtonNumber]].SetState(false)
+		Return
 	}
 Return
-
-GyroControl:
-	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 4, UInt, 0) ; Slow mouse movement down a little bit
-	IF (BotWmouseWheel) {
-		Hotkey, If, (!toggle && mouse2joystick)
-		Hotkey,WheelUp, overwriteWheelUp, off
-		Hotkey,WheelDown, overwriteWheelDown, off
-	}
-	SetStick(0,0)
-	Gui, Controller:Hide
-	IF (!useAltMouseMethod) {
-		LockMouseToWindow("ahk_id " . gameID)
-		SetTimer, mouseTojoystick, Off
-	}
-	Click, Right, Down
-Return
-
-GyroControlOff:
-	Click, Right, Up
-	IF (BotWmouseWheel) {
-		Hotkey, If, (!toggle && mouse2joystick)
-		Hotkey,WheelUp, overwriteWheelUp, on
-		Hotkey,WheelDown, overwriteWheelDown, on
-	}
-	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, 10, UInt, 0)  ; Restore the original speed.
-	Gui, Controller:Show, NA
-	IF (!useAltMouseMethod){
-		LockMouseToWindow()
-		SetTimer, mouseTojoystick, On
-	}
+	joyButtonNumber := KeyList[keyName]
+	vstick.Buttons[ButtonIndexes[joyButtonNumber]].SetState(false)
 Return
 
 toggleAimLock:
-	IF (vXbox)
-		vstick.SetAxisByIndex((ZLToggle := !ZLToggle) ? 100 : 0,6)
-	Else
-		vstick.SetBtn((ZLToggle := !ZLToggle),7)
+	vstick.Axes.LT.SetState((ZLToggle := !ZLToggle) ? 100 : 0)
 Return
 
 toggleHalf:
@@ -608,30 +467,30 @@ Return
 KeepStickHowItWas() {
 	Global moveStickHalf, walkSpeed, upKey, leftKey, downKey, rightKey
 	IF (GetKeyState(downKey, "P"))
-		SetStick("N/A",(moveStickHalf ? -1 * walkSpeed : -1), True)
+		SetStick("N/A",(moveStickHalf ? (vPS4 ? 1:-1) * walkSpeed : -1), True)
 	IF (GetKeyState(rightKey, "P"))
 		SetStick((moveStickHalf ? 1 * walkSpeed : 1),"N/A", True)
 	IF (GetKeyState(leftKey, "P"))
 		SetStick((moveStickHalf ? -1 * walkSpeed : -1),"N/A", True)
 	IF (GetKeyState(upKey, "P"))
-		SetStick("N/A",(moveStickHalf ? 1 * walkSpeed : 1), True)
+		SetStick("N/A",(moveStickHalf ? (vPS4 ? -1:1) * walkSpeed : 1), True)
 }
 
 overwriteUp:
 Critical, On
 IF (moveStickHalf)
-	SetStick("N/A",1 * walkSpeed, True)
+	SetStick("N/A",(vPS4 ? -1:1) * walkSpeed, True)
 Else
-	SetStick("N/A",1, True)
+	SetStick("N/A",(vPS4 ? -1:1), True)
 Critical, Off
 Return
 overwriteUpup:
 Critical, On
 IF (GetKeyState(downKey, "P")) {
 	IF (moveStickHalf)
-		SetStick("N/A",-1 * walkSpeed, True)
+		SetStick("N/A",(vPS4 ? 1:-1) * walkSpeed, True)
 	Else
-		SetStick("N/A",-1, True)
+		SetStick("N/A",(vPS4 ? 1:-1), True)
 }
 Else
 	SetStick("N/A",0, True)
@@ -683,18 +542,18 @@ Return
 overwriteDown:
 Critical, On
 IF (moveStickHalf)
-	SetStick("N/A",-1 * walkSpeed, True)
+	SetStick("N/A",(vPS4 ? 1:-1) * walkSpeed, True)
 Else
-	SetStick("N/A",-1, True)
+	SetStick("N/A",(vPS4 ? 1:-1), True)
 Critical, Off
 Return
 overwriteDownup:
 Critical, On
 IF (GetKeyState(upKey, "P")) {
 	IF (moveStickHalf)
-		SetStick("N/A",1 * walkSpeed, True)
+		SetStick("N/A",(vPS4 ? -1:1) * walkSpeed, True)
 	Else
-		SetStick("N/A",1, True)
+		SetStick("N/A",(vPS4 ? -1:1), True)
 }
 Else
 	SetStick("N/A",0, True)
@@ -704,39 +563,30 @@ Return
 overwriteWheelUp:
 	SetStick(0,0)
 	IF (!alreadyDown){
-		IF (vXbox)
-			vstick.SetPOV(90)
-		Else
-			vstick.SetBtn(1,16)
+		vstick.Dpad.SetState("Right")
 		alreadyDown := True
-		DllCall("Sleep", Uint, 250)
+		DllCall("Sleep", Uint, 75)
 	}
 	SetStick(-1,0)
-	DllCall("Sleep", Uint, 30)
+	DllCall("Sleep", Uint, 50)
 	SetStick(0,0)
-	SetTimer, ReleaseDPad, -650 ; vstick.SetBtn(0,16)
+	SetTimer, ReleaseDPad, -350 ; vstick.SetBtn(0,16)
 Return
 overwriteWheelDown:
 	SetStick(0,0)
 	IF (!alreadyDown){
-		IF (vXbox)
-			vstick.SetPOV(90)
-		Else
-			vstick.SetBtn(1,16)
+		vstick.Dpad.SetState("Right")
 		alreadyDown := True
-		DllCall("Sleep", Uint, 250)
+		DllCall("Sleep", Uint, 75)
 	}
 	SetStick(1,0)
-	DllCall("Sleep", Uint, 30)
+	DllCall("Sleep", Uint, 50)
 	SetStick(0,0)
-	SetTimer, ReleaseDPad, -650 ; vstick.SetBtn(0,16)
+	SetTimer, ReleaseDPad, -350 ; vstick.SetBtn(0,16)
 Return
 
 ReleaseDPad:
-	IF (vXbox)
-		vstick.SetPOV(-1)
-	Else
-		vstick.SetBtn(0,16)
+	vstick.Dpad.SetState("None")
 	alreadyDown := False
 	SetTimer, ReleaseDPad, Off
 Return
@@ -745,15 +595,14 @@ Return
 
 mouseTojoystick:
 	Critical, On
-	mouse2joystick(r,dr,OX,OY)
+	mouse2joystick(r,OX,OY)
 	Critical, Off
 Return
 
 ; Functions
 
-mouse2joystick(r,dr,OX,OY) {
+mouse2joystick(r,OX,OY) {
 	; r is the radius of the outer circle.
-	; dr is a bounce back parameter.
 	; OX is the x coord of circle center.
 	; OY is the y coord of circle center.
 	Global k, nnp, AlreadyDown
@@ -762,14 +611,14 @@ mouse2joystick(r,dr,OX,OY) {
 	Y-=OY
 	RR:=sqrt(X**2+Y**2)
 	IF (RR>r) {								; Check If outside controller circle.
-		X:=round(X*(r-dr)/RR)
-		Y:=round(Y*(r-dr)/RR)
+		X:=round(X*r/RR)
+		Y:=round(Y*r/RR)
 		RR:=sqrt(X**2+Y**2)
 		MouseMove,X+OX,Y+OY 					; Calculate point on controller circle, move back to screen/window coords, and move mouse.
 	}
 	
 	; Calculate angle
-	phi:=getAngle(X,Y)							
+	phi:=getAngle(X,Y)
 	
 	
 	IF (RR>k*r AND !AlreadyDown) 								; Check If outside inner circle/deadzone.
@@ -897,29 +746,22 @@ setStick(x,y, a := False) {
 	; Input is x,y ∈ (-1,1) where 1 would mean full tilt in one direction, and -1 in the other, while zero would mean no tilt at all. Using this interval makes it easy to invert the axis
 	; (mainly this was choosen beacause the author didn't know the correct interval to use in CvJoyInterface)
 	; the input is not really compatible with the CvJoyInterface. Hence this transformation:	
-	IF (vXBox) {
-		x:=(x+1)*50									; This maps x,y (-1,1) -> (0,100)
-		y:=(y+1)*50
+
+	x:=(x+1)*50									; This maps x,y (-1,1) -> (0,100)
+	y:=(y+1)*50
+
+	IF (a) {
+		IF x is number
+			vstick.Axes.LX.SetState(x)
+		IF y is number
+			vstick.Axes.LY.SetState(y)
 	}
 	Else {
-		x:=(x+1)*16384									; This maps x,y (-1,1) -> (0,32768)
-		y:=(y+1)*16384
+		IF x is number
+			vstick.Axes.RX.SetState(x)
+		IF y is number
+			vstick.Axes.RY.SetState(y)
 	}
-	
-	; Use set by index.
-	; x = 1, y = 2.
-	IF ( (!a AND vXbox) OR (a AND !vXBox) ) { ; IF (GetKeyState("RButton") OR a ) {
-		axisX := 4
-		axisY := 5
-	}
-	Else {
-		axisX := 1
-		axisY := 2
-	}
-	IF x is number
-		vstick.SetAxisByIndex(x,axisX)
-	IF y is number
-		vstick.SetAxisByIndex(y,axisY)
 }
 
 ; Shared functions
@@ -939,18 +781,11 @@ getAngle(x,y) {
 
 exitFunc() {
 	Global
-	IF (mouse2Joystick)	{
-		setStick(0,0)
-		SetStick(0,0, True)
-		IF (vXBox)
-			vstick.UnPlug()
-		vstick.Relinquish()
-	}
+	setStick(0,0)
+	SetStick(0,0, True)
+	vstick := ""
 	
-	md.Delete()
-	md := ""
 	show_Mouse() ; DllCall("User32.dll\ShowCursor", "Int", 1)
-	;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
 	ExitApp
 }
 
@@ -978,16 +813,11 @@ GUI, Add, Tab2, +Buttons -Theme -Wrap vTabControl ys w320 h0 Section, General|Ge
 GUIControlGet, S, Pos, TabControl ; Store the coords of this section for future use.
 ;------------------------------------------------------------------------------------------------------------------------------------------
 GUI, Tab, General
-	GUI, Add, GroupBox, x%SX% y%SY% w320 h120 Section, Output Mode
-	GUI, Add, Radio, %  "xp+10 yp+20 Group vopusevXBox Checked" . !usevXBox, Use vJoy Device (Direct Input)
-	GUI, Add, Radio, %  "xp yp+20 Checked" . usevXBox, Use vXBox Device (XInput)
+	GUI, Add, GroupBox, x%SX% y%SY% w320 h60 Section, Output Mode
+	GUI, Add, Radio, %  "xp+10 yp+20 Group vopusevXBox Checked" . !usevXBox, Use vPS4 Device
+	GUI, Add, Radio, %  "xp yp+20 Checked" . usevXBox, Use vXBox Device
 	
-	GUI, Add, GroupBox, xs+10 yp+20 w90 h50 Section,vJoy Device
-	GUI, Add, DropDownList, xp+10 yp+20 vopvJoyDevice w70, % StrReplace(ValidDevices, vJoyDevice, vJoyDevice . "|")
-	GUI, Add, GroupBox, ys w90 h50,vXBox Device
-	GUI, Add, DropDownList, xp+10 yp+20 vopvXBoxDevice w70, % StrReplace("1|2|3|4|", vXBoxDevice, vXBoxDevice . "|")
-	
-	GUI, Add, GroupBox, x%SX% yp+45 w320 h50,Executable Name
+	GUI, Add, GroupBox, x%SX% yp+25 w320 h50,Executable Name
 	GUI, Add, Edit, xp+10 yp+20 vopgameExe w90, %gameExe% 
 	GUI, Add, Text, x+m yp+3, The executable name for your CEMU
 	
@@ -1075,10 +905,9 @@ GUI, Tab, Keyboard Movement>Keys
 	GUI, Font
 
 	GUI, Add, GroupBox, xs w320 h50, Gyro Control
-	GUI, Add, Text, xs+10 yp+20 Right w80, Gyro Control:
-	GUI, Add, Hotkey, x+2 yp-3 w50 Limit190 vopgyroToggleKey, %gyroToggleKey%
+	GUI, Add, Text, xs+10 yp+20 Right w145, Removed from program:
 	GUI, Font, cBlue Underline
-	GUI, Add, Text, x+15 yp+4 gAndroidPhoneLink, Click Here For Better Options
+	GUI, Add, Text, x+4 gAndroidPhoneLink, Click Here For Better Options
 	GUI, Font,
 ;------------------------------------------------------------------------------------------------------------------------------------------
 GUI, Tab, Extra Settings
@@ -1094,16 +923,6 @@ GUI, Tab, Extra Settings
 	
 	GUI, Add, GroupBox, xs yp+40 w320 h40,Hide Cursor
 	GUI, Add, CheckBox, % "xp+10 yp+20 vophideCursor Checked" . hideCursor, Hide cursor when controller toggled on?
-	
-	GUI, Font, cRed Bold
-	GUI, Add, GroupBox, xs yp+30 w320 h65,EXPERIMENTAL Alternate Mouse Detection
-	GUI, Font,
-	GUI, Add, CheckBox, % "xp+10 yp+20 vopuseAltMouseMethod Checked" . useAltMouseMethod, Use Mouse Delta? (Experimental)
-	GUI, Add, Text, xs+10 yp+20 w40 Right, X-Sen:
-	GUI, Add, Edit, x+2 yp-3 vopalt_xSen w40, %alt_xSen%
-	GUI, Add, Text, x+10 yp+3 w30 Right, Y-Sen:
-	GUI, Add, Edit, x+2 yp-3 vopalt_ySen w40, %alt_ySen%
-	GUI, Add, Text, x+3 yp+3 w130 Left, Try 260-400? No Idea...
 
 GUI, Add, StatusBar
 BuildTree("Main", tree)
@@ -1148,7 +967,7 @@ mainSave:
 		Hotkey,%exitKey%,exitFunc, off
 		
 	; Joystick buttons
-	Hotkey, If, (!toggle && mouse2joystick)
+	Hotkey, If, (!toggle)
 	IF (walkToggleKey)
 		HotKey,%walkToggleKey%,toggleHalf, Off
 	IF (decreaseWalkKey)
@@ -1161,10 +980,7 @@ mainSave:
 		Hotkey,WheelUp, overwriteWheelUp, off
 		Hotkey,WheelDown, overwriteWheelDown, off
 	}
-	IF (gyroToggleKey) {
-		HotKey,%gyroToggleKey%, GyroControl, off
-		HotKey,%gyroToggleKey% Up, GyroControlOff, off
-	}
+	
 	Hotkey,%upKey%, overwriteUp, off
 	Hotkey,%upKey% Up, overwriteUpup, off
 	Hotkey,%leftKey%, overwriteLeft, off
@@ -1203,12 +1019,9 @@ mainSave:
 		}
 	}
 
-	IF (mouse2joystick) {
-		GoSub, initCvJoyInterface
-		GoSub, mouse2joystickHotkeys
-	}
-	pmX:=invertedX ? -1:1											; Sign for inverting axis
-	pmY:=invertedY ? -1:1
+	GoSub, initCvJoyInterface
+	GoSub, mouse2joystickHotkeys
+
 
 	; Enable new hotkeys
 	IF (controllerSwitchKey)
@@ -1221,8 +1034,6 @@ SubmitAll:
 	;FileDelete, settings.ini ; Should I just delete the settings file before writing all settings to it? Guarantees a clean file, but doesn't allow for hidden options...
 	; Write General
 	IniWrite, % opusevXBox - 1, settings.ini, General, usevXBox
-	IniWrite, % opvJoyDevice, settings.ini, General, vJoyDevice
-	IniWrite, % opvXBoxDevice, settings.ini, General, vXBoxDevice
 	IniWrite, % opgameExe, settings.ini, General, gameExe
 	IniWrite, % opautoActivateGame - 1, settings.ini, General, autoActivateGame
 	; Write General>Setup
@@ -1247,7 +1058,6 @@ SubmitAll:
 	IniWrite, % opincreaseWalkKey, settings.ini, Keyboard Movement>Keys, increaseWalkKey
 	IniWrite, % opdecreaseWalkKey, settings.ini, Keyboard Movement>Keys, decreaseWalkKey
 	IniWrite, % Round(opwalkSpeed/100, 2), settings.ini, Keyboard Movement>Keys, walkSpeed
-	IniWrite, % opgyroToggleKey, settings.ini, Keyboard Movement>Keys, gyroToggleKey
 	; Write Extra Settings
 	IF (RegexMatch(opjoystickButtonKeyList, "i)wheel(down|up)")) ; If wheeldown/up is part of the keylist you cannot use the special wheel functions for BotW
 		opBotWmouseWheel := 1
@@ -1255,9 +1065,6 @@ SubmitAll:
 	IniWrite, % oplockZL- 1, settings.ini, Extra Settings, lockZL
 	IniWrite, % oplockZLToggleKey, settings.ini, Extra Settings, lockZLToggleKey
 	IniWrite, % ophideCursor, settings.ini, Extra Settings, hideCursor
-	IniWrite, % opuseAltMouseMethod, settings.ini, Extra Settings, useAltMouseMethod
-	IniWrite, % opalt_xSen, settings.ini, Extra Settings, alt_xSen
-	IniWrite, % opalt_ySen, settings.ini, Extra Settings, alt_ySen
 Return
 
 selectionPath(ID) {
@@ -1390,9 +1197,7 @@ setSettingsToDefault:
 	pairsDefault=
 (
 gameExe=Cemu.exe
-usevXBox=0
-vJoyDevice=1
-vXBoxDevice=1
+usevXBox=1
 autoActivateGame=1
 r=30
 k=0.02
@@ -1411,15 +1216,10 @@ walkToggleKey=Numpad0
 increaseWalkKey=NumpadAdd
 decreaseWalkKey=NumPadSub
 walkSpeed=0.5
-gyroToggleKey=
 BotWmouseWheel=0
 lockZL=0
 lockZLToggleKey=Numpad1
 hideCursor=1
-BotWmotionAim=0
-useAltMouseMethod=0
-alt_xSen=400
-alt_ySen=280
 )
 	Loop,Parse,pairsDefault,`n
 	{
@@ -1445,39 +1245,34 @@ Loop, Parse, getKeyList, `,
 		continue
 	KeyListByNum[A_Index] := keyName
 }
-IF (vXBox) {
-	textWidth := 100
-	numEdits := 16
-}
-Else {
-	textWidth := 50
-	numEdits := 18
-}
+
+textWidth := 120
+
 setToggle := False
 GUI, Main:+Disabled
 GUI, KeyHelper:New, +HWNDKeyHelperHWND -MinimizeBox +OwnerMain
 GUI, Margin, 10, 7.5
 GUI, Font,, Lucida Sans Typewriter ; Courier New
 GUI, Add, Text, W0 H0 vLoseFocus, Hidden
-GUI, Add, Text, W%textWidth% R1 Right Section, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( A - ✕ )","A") : "A"
+GUI, Add, Text, W%textWidth% R1 Right Section, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   A   )","A") : Format("{1:-9.9s}{2:4.4s}","(   ╳   )","A") ; Doesn't show here but works as X
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[1]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( B - ○ )","B") : "B"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   B   )","B") : Format("{1:-9.9s}{2:4.4s}","(   ◯   )","B")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[2]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( X - □ )","X") : "X"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   X   )","X") : Format("{1:-9.9s}{2:4.4s}","(   □   )","X")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[3]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Y - △ )","Y") : "Y"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   Y   )","Y") : Format("{1:-9.9s}{2:4.4s}","(   △   )","Y")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[4]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(LB - L1)","L") : "L"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   LB  )","L") : Format("{1:-9.9s}{2:4.4s}","(   L1  )","L")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[5]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(RB - R1)","R") : "R"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   RB  )","R") : Format("{1:-9.9s}{2:4.4s}","(   R1  )","R")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[6]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(LT - L2)","ZL") : "ZL"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   LT  )","ZL") : Format("{1:-9.9s}{2:4.4s}","(   L2  )","ZL")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[7]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(RT - R2)","ZR") : "ZR"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(   RT  )","ZR") : Format("{1:-9.9s}{2:4.4s}","(   R2  )","ZR")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[8]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Start )","+") : "+"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Start )","+") : Format("{1:-9.9s}{2:4.4s}","(Options)","+")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[9]
-GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","( Back  )","-") : "-"
+GUI, Add, Text, W%textWidth% xs R1 Right, % vXBox ? Format("{1:-9.9s}{2:4.4s}","(  Back )","-") : Format("{1:-9.9s}{2:4.4s}","( Share )","-")
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[10]
 GUI, Add, Text, w65 ys R1 Right Section, L-Click
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[11]
@@ -1492,12 +1287,6 @@ GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[15]
 GUI, Add, Text, w80 xs R1 Right, D-Right
 GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[16]
 GUI, Add, Text, w0 xs R1 Right, Dummy
-IF(!vXBox) {
-	GUI, Add, Text, w80 xs R1 Right, Blow-Mic
-	GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[17]
-	GUI, Add, Text, w80 xs R1 Right, Show-Screen
-	GUI, Add, Edit, W80 R1 x+m yp-3 Center ReadOnly -TabStop, % KeyListByNum[18]
-}
 GUI, Add, Text, w0 xm+230 R1 Right, Dummy
 GUI, Add, Button, xp yp-30 w80 gSaveButton Section, Save
 GUI, Add, Button, x+m w80 gCancelButton, Cancel
@@ -1726,129 +1515,3 @@ show_Mouse(bShow := True) { ; show/hide the mouse cursor
     }
 }
 
-LockMouseToWindow(llwindowname="") {
-  IF (!llwindowname) {
-	DllCall("ClipCursor", "UInt", 0)
-	Return False
-  }
-  WinGetPos, llX, llY, llWidth, llHeight, %llwindowname%
-  VarSetCapacity(llrectA, 16)
-  IF (llWidth AND llHeight) {
-	NumPut(llX+10,&llrectA+0),NumPut(llY+54,&llrectA+4),NumPut(llWidth-10 + llX,&llrectA+8),NumPut(llHeight-10 + llY,&llrectA+12)
-	DllCall("ClipCursor", "UInt", &llrectA)
-	Return True
-  }
-}
-
-installBus:
-	InstallUninstallScpVBus(True)
-Return
-uninstallBus:
-	InstallUninstallScpVBus(False)
-Return
-
-InstallUninstallScpVBus(state:="ERROR") {
-	IF (state == "ERROR")
-		Return
-	IF (state){
-		RunWait, *Runas devcon.exe install ScpVBus.inf root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
-		MsgBox,, Done Installing, reloading the script., 1
-	} Else {
-		RunWait, *Runas devcon.exe remove root\ScpVBus, % A_ScriptDir "\ScpVBus", UseErrorLevel Hide
-		IniWrite,0, settings.ini, General, usevXBox ; Turn off the setting for future runs as well.
-		MsgBox,, Done Un-Installing, reloading the script., 1
-	}
-	IF (ErrorLevel == "ERROR")
-		return 0
-	Reload
-}
-
-; Gets called when mouse moves
-; x and y are DELTA moves (Amount moved since last message), NOT coordinates.
-MouseEvent(MouseID, x := 0, y := 0){
-	Global alt_xSen, alt_ySen
-	Static useX, useY, xZero, yZero
-	intv := 1
-	
-	IF (MouseID == "RESET") {
-		useX := useY := 0
-		SetStick(0,0)
-		Return
-	}
-	
-	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
-		useX := 0
-	IF ((y < 0 AND useY > 0) OR (y > 0 AND useY < 0))
-		useY := 0
-	IF (x AND y)
-		intv := 4
-
-	IF (!x)
-		xZero++
-	IF (xZero > 2) {
-		useX := 0
-		xZero := 0
-	}
-	IF (x > 0)
-		useX += intv 
-	Else
-		useX -= intv 
-
-	IF (!y)
-		yZero++
-	IF (yZero > 2) {
-		useY := 0
-		yZero := 0
-	}
-	IF (y > 0)
-		useY += intv 
-	Else
-		useY -= intv 
-		
-	IF (abs(useX)>alt_xSen)
-		useX := useX/abs(useX) * alt_xSen
-	Else IF (abs(x) AND abs(useX) < alt_xSen/6)
-		useX := useX/abs(useX) * alt_xSen/6
-
-	IF (abs(useY)>alt_ySen)
-		useY := useY/abs(useY) * alt_ySen
-	Else IF (abs(y) AND abs(useY) < alt_ySen/6)
-		useY := useY/abs(useY) * alt_ySen/6
-
-	SetStick(useX/alt_xSen,-useY/alt_ySen)
-	Return
-}
-
-MouseEvent_OFF(MouseID, x := 0, y := 0){
-	Global alt_xSen, alt_ySen
-	Static useX, useY
-	IF (MouseID == "RESET") {
-		useX := useY := 0
-		SetStick(0,0)
-		Return
-	}
-	
-	IF ((x < 0 AND useX > 0) OR (x > 0 AND useX < 0))
-		useX := 0
-	IF ((y < 0 AND useY > 0) OR (y > 0 AND useY < 0))
-		useY := 0
-
-	IF (!x)
-		useX /= 2
-	Else
-		useX += x
-	
-	IF (abs(useX)>alt_xSen)
-		useX := x/abs(x) * alt_xSen
-
-	IF (!y)
-		useY /= 2
-	Else 
-		useY += y
-
-	IF (abs(useY)>alt_ySen)
-		useY := y/abs(y) * alt_ySen
-		
-	SetStick(useX/alt_xSen,-useY/alt_ySen)
-	Return
-}
