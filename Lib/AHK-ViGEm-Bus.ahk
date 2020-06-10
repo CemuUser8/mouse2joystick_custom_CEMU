@@ -37,6 +37,10 @@ class ViGEmTarget {
 	SendReport(){
 		this.Instance.SendReport()
 	}
+	
+	Disconnect() {
+		this.Instance.Dispose()
+	}
 }
 
 ; DS4 (DualShock 4 for Playstation 4)

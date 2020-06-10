@@ -41,29 +41,37 @@ Icon_5=0
 ;
 ;	Urls:
 ;			https://autohotkey.com/boards/viewtopic.php?f=19&t=21489 										- First released here / help / instruction / bug reports.
-;			http://vjoystick.sourceforge.net/site/															- vJoy device drivers, needed for mouse to virtual joystick.
-;			https://autohotkey.com/boards/viewtopic.php?f=19&t=20703&sid=2619d57dcbb0796e16ea172f238f08a0 	- Original request by crisangelfan.
-;			https://autohotkey.com/boards/viewtopic.php?t=5705												- CvJoyInterface.ahk
+;			https://github.com/ViGEm/ViGEmBus/releases														- ViGEm device drivers
+;			https://github.com/evilC/AHK-ViGEm-Bus															- AHK-ViGEm-Bus
 ;
 ;	Acknowledgements:
-;			crisangelfan and evilC on autohotkey.com forum provided useful input.
-;			Credit to author(s) of vJoy @ http://vjoystick.sourceforge.net/site/
-;			evilC did the CvJoyInterface.ahk
+;			Credit to author(s) of ViGEm @ https://github.com/ViGEm/ViGEmBus
+;			evilC did the AHK-ViGEm-Bus.ahk and ViGEmWrapper.dll
 ;
 version := "v0.5.0.0"
 #NoEnv  																; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input															; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  											; Ensures a consistent starting directory.
-#include Lib\AHK-ViGEm-Bus.ahk
-#Include Lib\SelfDeletingTimer.ahk
+
 ; Settings
-#MaxHotkeysPerInterval 210
+ListLines, Off
+SetBatchLines,-1
+#MaxHotkeysPerInterval 300
 #HotkeyInterval 1000
+#KeyHistory 0
 #InstallMouseHook
+#InstallKeybdHook
 #SingleInstance Force
+Process, Priority, , A
 CoordMode,Mouse,Screen
 SetMouseDelay,-1
-SetBatchLines,-1
+SetDefaultMouseSpeed, 0
+SetKeyDelay, -1, -1
+SetWinDelay, -1
+SetControlDelay, -1
+
+#Include Lib\AHK-ViGEm-Bus.ahk
+#Include Lib\SelfDeletingTimer.ahk
 
 ; On exit
 OnExit("exitFunc")
@@ -169,7 +177,7 @@ IF (controllerSwitchKey)
 IF (exitKey)
 	Hotkey,%exitKey%,exitFunc, on
 
-Gosub, initCvJoyInterface
+Gosub, initInterface
 Gosub, mouse2joystickHotkeys
 
 
@@ -201,7 +209,7 @@ Menu,Tray,Default, Settings
 IF freq is not Integer
 	freq := 75
 
-snapToFullTilt:=0.005							; This needs to be improved.
+snapToFullTilt:=0.05							; This needs to be improved.
 ;nnp:=4	 										; Non-linearity parameter for joystick output, 1 = linear, >1 higher sensitivity closer to full tilt, <1 higher sensitivity closer to deadzone. Recommended range, [0.1,6]. 
 ; New parameters
 
@@ -231,20 +239,22 @@ helpMenu:
 		Run, https://github.com/CemuUser8/mouse2joystick_custom_CEMU/tree/master
 Return
 
-initCvJoyInterface:
-	Global vXBox := usevXBox, vPS4 := !usevXbox
+initInterface:
+	Global vXBox := usevXBox, vPS4 := !usevXBox
 	
 	IF (vXBox) {
-		ButtonIndexes :=  {1:"A", 2:"B", 3:"X", 4:"Y", 5:"LB", 6:"RB", 9:"Start", 10:"Back", 11:"LS", 12:"RS", 17:"Xbox"} ; 13,14,15,16 are the Dpad buttons
+		ButtonIndexes :=  {1:"A", 2:"B", 3:"X", 4:"Y", 5:"LB", 6:"RB", 9:"Start", 10:"Back", 11:"LS", 12:"RS", 17:"Xbox"} ; 7,8 are triggers (Axes) -- 13,14,15,16 are the Dpad buttons
 		vstick := vXBoxstick
 		pmX:=invertedX ? -1:1
 		pmY:=invertedY ? -1:1
+		TrayTip,, % "Virtual XBox Controller"
 	}
 	Else IF (vPS4) {
-		ButtonIndexes :=  {1:"Cross", 2:"Circle", 3:"Square", 4: "Triangle", 5:"L1", 6:"R1", 9:"Options", 10:"Share", 11:"LS", 12:"RS", 17:"Ps", 18:"L2", 19:"R2", 20:"TouchPad"} ; 13, 14, 15, 16 are the Dpad buttons
+		ButtonIndexes :=  {1:"Cross", 2:"Circle", 3:"Square", 4: "Triangle", 5:"L1", 6:"R1", 9:"Options", 10:"Share", 11:"LS", 12:"RS", 17:"Ps", 18:"TouchPad", 19:"L2", 20:"R2"} ; ; 7,8 are triggers (Axes) but also buttons L2 & R2 -- 13, 14, 15, 16 are the Dpad buttons
 		vstick := vPS4stick
 		pmX:=invertedX ? -1:1
 		pmY:=invertedY ? 1:-1
+		TrayTip,, % "Virtual PS4 Controller"
 	}
 
 Return
@@ -257,7 +267,7 @@ controllerSwitch:
 			WinActivate,ahk_exe %gameExe%
 			WinWaitActive, ahk_exe %gameExe%,,2
 			IF (ErrorLevel) {	
-				MsgBox,16,Error, %gameExe% not activated.
+				MsgBox,16,Auto Activate Error, Could not find a window for [%gameExe%]
 				Return
 			}
 			WinGetPos,gameX,gameY,gameW,gameH,ahk_exe %gameExe%									; Get game screen position and dimensions
@@ -356,7 +366,7 @@ pressJoyButton:
 	keyName:=A_ThisHotkey
 	joyButtonNumber := KeyList[keyName]
 	IF (InStr(keyName, "wheel"))
-		new SelfDeletingTimer(100,"ReleaseWheel", joyButtonNumber)
+		new SelfDeletingTimer(100,"ReleaseButton", joyButtonNumber)
 	Switch joyButtonNumber
 	{
 	Case 7:
@@ -386,7 +396,7 @@ pressJoyButton:
 	}
 Return
 
-ReleaseWheel(keyNum) { ; This is duplicated of the label below, it had to be added so I could release mouse wheel keys as they don't fire Up keystrokes.
+ReleaseButton(keyNum) { ; Function to do the release of Buttons.
 	Global
 	Switch keyNum
 	{
@@ -412,28 +422,9 @@ Return
 releaseJoyButton:
 	keyName:=RegExReplace(A_ThisHotkey," Up$")
 	joyButtonNumber := KeyList[keyName]
-	Switch joyButtonNumber
-	{
-	Case 7:
-		IF (ZLToggle AND lockZL)
-			vstick.Axes.LT.SetState(100)
-		Else
-			vstick.Axes.LT.SetState(0)
-		Return
-	Case 8:
-		vstick.Axes.RT.SetState(0)
-		Return
-	Case 13,14,15,16:
-		vstick.Dpad.SetState("None")
-		return
-	Default:
-		vstick.Buttons[ButtonIndexes[joyButtonNumber]].SetState(false)
-		Return
-	}
+	ReleaseButton(joyButtonNumber)
 Return
-	joyButtonNumber := KeyList[keyName]
-	vstick.Buttons[ButtonIndexes[joyButtonNumber]].SetState(false)
-Return
+
 
 toggleAimLock:
 	vstick.Axes.LT.SetState((ZLToggle := !ZLToggle) ? 100 : 0)
@@ -467,13 +458,13 @@ Return
 KeepStickHowItWas() {
 	Global moveStickHalf, walkSpeed, upKey, leftKey, downKey, rightKey
 	IF (GetKeyState(downKey, "P"))
-		SetStick("N/A",(moveStickHalf ? (vPS4 ? 1:-1) * walkSpeed : -1), True)
+		SetStick("N/A",(moveStickHalf ? (vPS4 ? 1:-1) * walkSpeed : (vPS4 ? 1:-1)), True)
 	IF (GetKeyState(rightKey, "P"))
 		SetStick((moveStickHalf ? 1 * walkSpeed : 1),"N/A", True)
 	IF (GetKeyState(leftKey, "P"))
 		SetStick((moveStickHalf ? -1 * walkSpeed : -1),"N/A", True)
 	IF (GetKeyState(upKey, "P"))
-		SetStick("N/A",(moveStickHalf ? (vPS4 ? -1:1) * walkSpeed : 1), True)
+		SetStick("N/A",(moveStickHalf ? (vPS4 ? -1:1) * walkSpeed : (vPS4 ? -1:1)), True)
 }
 
 overwriteUp:
@@ -610,12 +601,12 @@ mouse2joystick(r,OX,OY) {
 	X-=OX										; Move to controller coord system.
 	Y-=OY
 	RR:=sqrt(X**2+Y**2)
-	IF (RR>r) {								; Check If outside controller circle.
-		X:=round(X*r/RR)
-		Y:=round(Y*r/RR)
-		RR:=sqrt(X**2+Y**2)
-		MouseMove,X+OX,Y+OY 					; Calculate point on controller circle, move back to screen/window coords, and move mouse.
-	}
+	;IF (RR>r) {								; Check If outside controller circle.
+	;	X:=round(X*r/RR)
+	;	Y:=round(Y*r/RR)
+	;	RR:=sqrt(X**2+Y**2)
+	;	MouseMove,X+OX,Y+OY 					; Calculate point on controller circle, move back to screen/window coords, and move mouse.
+	;}
 	
 	; Calculate angle
 	phi:=getAngle(X,Y)
@@ -805,7 +796,6 @@ Keyboard Movement|Keys
 Extra Settings
 )"
 GUI, Main:New, -MinimizeBox, % "Mouse2Joystick Custom for CEMU Settings  -  " . version
-GUI, Add, Text,, Options:
 GUI, Add, TreeView, xm w150 r16 gTreeClick Section
 GUI, Add, Button,xs w73 gMainOk, Ok
 GUI, Add, Button,x+4 w73 gMainSave Default, Save
@@ -1019,7 +1009,7 @@ mainSave:
 		}
 	}
 
-	GoSub, initCvJoyInterface
+	GoSub, initInterface
 	GoSub, mouse2joystickHotkeys
 
 
