@@ -1852,3 +1852,50 @@ MouseEvent_OFF(MouseID, x := 0, y := 0){
 	SetStick(useX/alt_xSen,-useY/alt_ySen)
 	Return
 }
+
+
+set_btn(btn_id, interval:=100){
+	vstick.SetBtn(1,btn_id)
+	Sleep, %interval%
+	vstick.SetBtn(0,btn_id)
+	Return
+}
+
+set_ability(direction,n_move){
+	vstick.SetBtn(1,13) ; change ability
+	Sleep, 100
+	Loop, %n_move%
+	{
+		setStick(direction,0)  ; left move chosen
+		Sleep, 100
+	}
+	Sleep, 100
+	vstick.SetBtn(0,13) ; end change ability
+}
+
+#w::
+	set_ability(-1,6) 		; choose remote bomb
+	; vstick.SetBtn(1,7) 		; Hold up shield
+	setStick(0,1,True)  	; Move forward
+	Sleep, 300
+	set_btn(3) 				; Jump
+	Sleep, 100
+	set_btn(5)				; place round bomb
+	Sleep, 100	
+
+	set_btn(8)
+	Sleep, 100
+	set_btn(2)				; withdrawl bow
+
+	Sleep, 300
+	set_ability(1,1)		; change to square bomb
+	Sleep, 300
+	set_btn(5)				; place square bomb
+	Sleep, 300
+	set_ability(-1,1)		; change to round bomb
+	Sleep, 100
+	set_btn(5)				; detonate round bomb
+	Sleep, 300
+	; vstick.SetBtn(0,7)  	; End shield holding
+Return
+
