@@ -203,7 +203,7 @@ snapToFullTilt:=0.005							; This needs to be improved.
 ; Transparent window that covers game screen to prevent game from capture the mouse.
 Gui, Controller: New
 Gui, Controller: +ToolWindow -Caption +AlwaysOnTop +HWNDstick
-Gui, Controller: Color, FFFFFF
+Gui, Controller: Color, 000000
 
 ; Spam user with useless info, first time script runs.
 IF (firstRun)
