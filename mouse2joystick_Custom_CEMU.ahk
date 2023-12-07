@@ -334,22 +334,24 @@ controllerSwitch:
 			SetTimer,mouseTojoystick,%freq%
 
 	}
-	Else {	; Shutting down controller
-		setStick(0,0)															; Stick in equilibrium.
-		setStick(0,0, True)
-		IF (useAltMouseMethod) {
-			LockMouseToWindow(False)
-			md.Stop()
-		}
-		Else
-			SetTimer,mouseTojoystick,Off
-		
-		IF (hideCursor)
-			show_Mouse()				; No need to show cursor if not hidden.
-		;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
-		Gui, Controller:Hide
-	
-	}
+Else {    ; Shutting down controller
+    setStick(0,0)                            ; Stick in equilibrium.
+    setStick(0,0, True)
+    ; Explicitly move the cursor to the center of the screen
+    MouseMove, % A_ScreenWidth / 2, % A_ScreenHeight / 2
+    IF (useAltMouseMethod) {
+        LockMouseToWindow(False)
+        md.Stop()
+    }
+    Else
+        SetTimer, mouseTojoystick, Off
+
+    IF (hideCursor)
+        show_Mouse()                ; No need to show cursor if not hidden.
+    ;DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, OrigMouseSpeed, UInt, 0)  ; Restore the original speed.
+    Gui, Controller: Hide
+}
+
 	toggle:=!toggle
 Return
 
